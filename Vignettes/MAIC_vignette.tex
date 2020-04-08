@@ -1,0 +1,141 @@
+
+
+\documentclass{article}\usepackage[]{graphicx}\usepackage[]{color}
+% maxwidth is the original width if it is less than linewidth
+% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+
+\usepackage{hyperref}
+\usepackage[backend=bibtex, sorting=none]{biblatex}
+\usepackage{geometry}
+\geometry{verbose,tmargin=3cm,bmargin=3cm,lmargin=3cm,rmargin=3cm}
+
+\usepackage[backend=bibtex]{biblatex}
+
+\bibliography{references.bib}
+
+\title{Matched Adjusted Indirect Comparison: MAIC package }
+
+\author{Bresmed, 84 Queen St, Sheffield, S1 2DW}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+
+\maketitle
+\abstract{
+
+As part of the development of cost effectiveness models, it is often required to compare two interventions where there is a disconnected treatment network or single-arm study. In this scenario, standard analysis methodologies to compare treatments are not applicable \cite{Dias2011}.
+Recently, NICE have issued guidance on how to compare treatments using population-adjusted indirect comparisons, in which individual-level data (ILD) in one or more trials are used to adjust for between-trial differences in the distribution of variables that influence outcome \cite{Phillippo2016a}. The methods discussed are the matched-adjusted indirect comparison (MAIC) and the simulated treatment comparison (STC). An example of how to perform such an analysis for binomial data in R is presented in \cite{Phillippo2016b}. This document describes the steps required to perform an MAIC analysis for a disconnected treatment network where the endpoint of interest is time-to-event. All analyses are performed in the R software package. However, this document does not describe the assumptions/rationale that underpin such analyses or how to interpret the results. The interested reader is directed towards the references at the back of the document; specifically \cite{Phillippo2016a},  \cite{Phillippo2016b} and \cite{Signorovitch2012}.
+
+}
+\newpage{}
+\section{Introduction}
+
+ EDIT
+
+
+Bristol-Myers Squibb (BMS) is currently developing nivolumab (Opdivo) for the treatment of advanced hepatocellular cancer (HCC).
+The evidence used to inform nivolumab efficacy estimates have been taken from the ILD of the expansion (EXP) phase from the March 2017 database lock  of the CheckMate 040 study \cite{ElKhoueiry2017}. CheckMate 040 was an open-label, non-comparative, phase 1/2 dose escalation and expansion trial.
+
+For the submission of Nivolumab to NICE it was required to compare overall Survival (OS) and progression free survival (PFS) of Nivolumab to Regorafenib. However, a comparison was not available from a randomised trial. As such, efficacy data from the CheckMate 040 study was compared directly to the Regorafenib arm of the RESORCE trial \cite{Bruix2017}; a randomised, double-blind, parallel-group, phase 3 trial where adults with HCC were randomly assigned (2:1) to best supportive care plus oral regorafenib 160 mg or placebo once daily during weeks 1-3 of each 4-week cycle.
+
+However due to the lack of randomisation there was a difference in some of the key prognostic factors that were expected to influence outcome between the two treatments.  In order to adjust for between-trial differences in the distribution of these variables an MAIC analysis was undertaken.
+
+This document describes how such an analysis can be undertaken in R \cite{Rref1} for the endpoint of OS. The code included in this document uses the following R packages: \texttt{haven}, \texttt{survival}, \texttt{survminer}, \texttt{plyr}, \texttt{dplyr}, \texttt{reshape2} and
+\texttt{flexsurv}.
+
+\section{Naive Comparison}
+
+Figure \ref{fig:plot1} presents the Kaplan-Meier of OS for nivolumab compared to Regorafenib without adjustment for any imbalances in potentially prognostic or predictive factors; a so called "naive" comparison.
+
+Patient level data were not available for RESORCE. As such, the Kaplan-Meier graph of the regorafenib arm was digitised using the methodology of Guyot et al\cite{Guyot2012}. ILD were avilable for nivolumab from the CheckMate 040 study.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error: package or namespace load failed for 'haven' in loadNamespace(i, c(lib.loc, .libPaths()), versionCheck = vI[[i]]):\\\#\#\ \ namespace 'vctrs' 0.2.0 is being loaded, but >= 0.2.1 is required}}\begin{alltt}
+\hlkwd{library}\hlstd{(flexsurv,} \hlkwc{warn.conflicts} \hlstd{=} \hlnum{FALSE}\hlstd{,} \hlkwc{quietly}\hlstd{=}\hlnum{TRUE}\hlstd{)}
+\hlkwd{library}\hlstd{(tibble,} \hlkwc{warn.conflicts} \hlstd{=} \hlnum{FALSE}\hlstd{,} \hlkwc{quietly}\hlstd{=}\hlnum{TRUE}\hlstd{)}
+\hlkwd{library}\hlstd{(flextable,} \hlkwc{warn.conflicts} \hlstd{=} \hlnum{FALSE}\hlstd{,} \hlkwc{quietly}\hlstd{=}\hlnum{TRUE}\hlstd{)}
+\hlkwd{library}\hlstd{(officer,} \hlkwc{warn.conflicts} \hlstd{=} \hlnum{FALSE}\hlstd{,} \hlkwc{quietly}\hlstd{=}\hlnum{TRUE}\hlstd{)}
+\hlkwd{library}\hlstd{(tibble,} \hlkwc{warn.conflicts} \hlstd{=} \hlnum{FALSE}\hlstd{,} \hlkwc{quietly}\hlstd{=}\hlnum{TRUE}\hlstd{)}
+
+\hlstd{base.dir} \hlkwb{<-} \hlstr{'G:/Clients/Roche/2797 Development of R Code for MAIC and mixture cure models/Project/2 Exploratory'}
+\hlstd{data.path} \hlkwb{<-} \hlkwd{file.path}\hlstd{(base.dir,}\hlstr{'Simulated datasets'}\hlstd{)}
+
+\hlstd{intervention_input} \hlkwb{<-} \hlkwd{read.csv}\hlstd{(}\hlkwd{file.path}\hlstd{(data.path,} \hlstr{"Simulated dataset.csv"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{filter}\hlstd{(trt}\hlopt{==}\hlstr{"A"}\hlstd{)}
+\hlstd{comparator_ipd} \hlkwb{<-} \hlkwd{read.csv}\hlstd{(}\hlkwd{file.path}\hlstd{(data.path,} \hlstr{"Simulated dataset.csv"}\hlstd{))} \hlopt{%>%}
+  \hlkwd{filter}\hlstd{(trt}\hlopt{==}\hlstr{"B"}\hlstd{)}
+\hlstd{target_pop} \hlkwb{<-} \hlkwd{read.csv}\hlstd{(}\hlkwd{file.path}\hlstd{(data.path,}\hlstr{"Aggregate data.csv"}\hlstd{))} \hlcom{# Baseline agregate data}
+
+\hlkwd{head}\hlstd{(intervention_input)}
+\end{alltt}
+\begin{verbatim}
+##   X ID age gender trt Event     Time Smoke ECOG0 Binary_event
+## 1 1  1  45   Male   A     0 281.5195     0     0            1
+## 2 2  2  71   Male   A     0 500.0000     0     0            1
+## 3 3  3  58   Male   A     0 304.6406     1     1            1
+## 4 4  4  48 Female   A     0 102.4731     0     1            1
+## 5 5  5  69   Male   A     0 101.6632     0     1            1
+## 6 6  6  48 Female   A     1 237.0593     0     1            0
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+
+\printbibliography
+
+\end{document}
+
+
+
+
+

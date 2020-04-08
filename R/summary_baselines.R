@@ -14,7 +14,7 @@
 #' @seealso \code{\link{analysis_dataset}}
 #' @export
 summarize_baselines <- function(analysis_data, matching_vars){
-  # summarize binary variables as n/N (%)
+  # summarize binary variables as n/N (%) test
 
   # summarize continuous variables as mean (SD)
 

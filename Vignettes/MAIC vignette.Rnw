@@ -1,0 +1,90 @@
+
+
+\documentclass{article}
+
+\usepackage{hyperref}
+\usepackage[backend=bibtex, sorting=none]{biblatex}
+\usepackage{geometry}
+\geometry{verbose,tmargin=3cm,bmargin=3cm,lmargin=3cm,rmargin=3cm}
+
+\usepackage[backend=bibtex]{biblatex}
+
+\bibliography{references.bib}
+
+\title{Matched Adjusted Indirect Comparison: MAIC package }
+
+\author{Bresmed, 84 Queen St, Sheffield, S1 2DW}
+
+\begin{document}
+
+\maketitle
+\abstract{
+
+As part of the development of cost effectiveness models, it is often required to compare two interventions where there is a disconnected treatment network or single-arm study. In this scenario, standard analysis methodologies to compare treatments are not applicable \cite{Dias2011}.
+Recently, NICE have issued guidance on how to compare treatments using population-adjusted indirect comparisons, in which individual-level data (ILD) in one or more trials are used to adjust for between-trial differences in the distribution of variables that influence outcome \cite{Phillippo2016a}. The methods discussed are the matched-adjusted indirect comparison (MAIC) and the simulated treatment comparison (STC). An example of how to perform such an analysis for binomial data in R is presented in \cite{Phillippo2016b}. This document describes the steps required to perform an MAIC analysis for a disconnected treatment network where the endpoint of interest is time-to-event. All analyses are performed in the R software package. However, this document does not describe the assumptions/rationale that underpin such analyses or how to interpret the results. The interested reader is directed towards the references at the back of the document; specifically \cite{Phillippo2016a},  \cite{Phillippo2016b} and \cite{Signorovitch2012}.
+
+}
+\newpage{}
+\section{Introduction}
+
+ EDIT
+
+
+Bristol-Myers Squibb (BMS) is currently developing nivolumab (Opdivo) for the treatment of advanced hepatocellular cancer (HCC).
+The evidence used to inform nivolumab efficacy estimates have been taken from the ILD of the expansion (EXP) phase from the March 2017 database lock  of the CheckMate 040 study \cite{ElKhoueiry2017}. CheckMate 040 was an open-label, non-comparative, phase 1/2 dose escalation and expansion trial.
+
+For the submission of Nivolumab to NICE it was required to compare overall Survival (OS) and progression free survival (PFS) of Nivolumab to Regorafenib. However, a comparison was not available from a randomised trial. As such, efficacy data from the CheckMate 040 study was compared directly to the Regorafenib arm of the RESORCE trial \cite{Bruix2017}; a randomised, double-blind, parallel-group, phase 3 trial where adults with HCC were randomly assigned (2:1) to best supportive care plus oral regorafenib 160 mg or placebo once daily during weeks 1-3 of each 4-week cycle.
+
+However due to the lack of randomisation there was a difference in some of the key prognostic factors that were expected to influence outcome between the two treatments.  In order to adjust for between-trial differences in the distribution of these variables an MAIC analysis was undertaken.
+
+This document describes how such an analysis can be undertaken in R \cite{Rref1} for the endpoint of OS. The code included in this document uses the following R packages: \texttt{haven}, \texttt{survival}, \texttt{survminer}, \texttt{plyr}, \texttt{dplyr}, \texttt{reshape2} and
+\texttt{flexsurv}.
+
+\section{Naive Comparison}
+
+Figure \ref{fig:plot1} presents the Kaplan-Meier of OS for nivolumab compared to Regorafenib without adjustment for any imbalances in potentially prognostic or predictive factors; a so called "naive" comparison.
+
+Patient level data were not available for RESORCE. As such, the Kaplan-Meier graph of the regorafenib arm was digitised using the methodology of Guyot et al\cite{Guyot2012}. ILD were avilable for nivolumab from the CheckMate 040 study.
+
+<<echo=-(1:14) >>=
+BresMed.blue = rgb(69, 185, 209, max=255)
+BresMed.red = rgb(225, 55, 60, max=255)
+BresMed.yellow = rgb(238, 224, 30, max=255)
+BresMed.pink = rgb(211,78,147,max=255)
+BresMed.Dblue=rgb(0,45,92,max=255)
+BresMed.Dyellow = rgb(214, 200, 16, max=255)
+
+
+library(haven, warn.conflicts = FALSE, quietly=TRUE) # loading required libraries
+library(survival, warn.conflicts = FALSE, quietly=TRUE)
+library(survminer, warn.conflicts = FALSE, quietly=TRUE)
+library(plyr, warn.conflicts = FALSE, quietly=TRUE)
+library(dplyr, warn.conflicts = FALSE, quietly=TRUE)
+library(reshape2, warn.conflicts = FALSE, quietly=TRUE)
+library(flexsurv, warn.conflicts = FALSE, quietly=TRUE)
+library(tibble, warn.conflicts = FALSE, quietly=TRUE)
+library(flextable, warn.conflicts = FALSE, quietly=TRUE)
+library(officer, warn.conflicts = FALSE, quietly=TRUE)
+library(tibble, warn.conflicts = FALSE, quietly=TRUE)
+
+base.dir <- 'G:/Clients/Roche/2797 Development of R Code for MAIC and mixture cure models/Project/2 Exploratory'
+data.path <- file.path(base.dir,'Simulated datasets')
+
+intervention_input <- read.csv(file.path(data.path, "Simulated dataset.csv")) %>%
+  filter(trt=="A")
+comparator_ipd <- read.csv(file.path(data.path, "Simulated dataset.csv")) %>%
+  filter(trt=="B")
+target_pop <- read.csv(file.path(data.path,"Aggregate data.csv")) # Baseline agregate data
+
+head(intervention_input)
+@
+
+
+\printbibliography
+
+\end{document}
+
+
+
+
+
