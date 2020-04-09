@@ -36,14 +36,26 @@ gradfn <- function(a1, X){
 #'
 #' @export
 estimate_weights <- function(intervention_data, baseline_comparator , matching_vars, ...){
+
   #Centre covariates
+  X.EM.0 <- sweep(as.matrix(intervention_data[,matching_vars]), 2,
+                  as.numeric(AD[1,matching_vars]), '-')
 
   #Estimate weights
+  opt1 <- optim(par = rep(0,length(matching_vars)), fn = objfn, gr = gradfn, X = X.EM.0, method = "BFGS")
+  a1 <- opt1$par
+  wt <- exp(X.EM.0 %*% a1)
+  wt <- ifelse(wt<0.000001, 0, wt) # if weights are smaller than 10^-6 then round them to 0
+  colnames(wt) <- list("wt")
 
   #Rescale weights
-
+  wt.rs <- (wt / sum(wt)) *(sum(wt)^2/sum(wt^2))   # rescaled weights
+  colnames(wt.rs) <- list("wt.rs")
   #Return a data frame with weights attached intervention_wts
-}
+
+  return(list(wt = wt, wt.rs = wt.rs, a1 = a1))
+
+  }
 
 # Functions for summarizing the weights ---------------------------------
 

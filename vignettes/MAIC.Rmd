@@ -20,8 +20,110 @@ knitr::opts_chunk$set(
 
 ## Set up packages
 
+Install packages - these dependacies need to be built into the package at some point
+
 ```{r setup}
 library(MAIC)
-?MAIC
+library(survival, warn.conflicts = FALSE, quietly=TRUE)
+library(survminer, warn.conflicts = FALSE, quietly=TRUE)
+library(plyr, warn.conflicts = FALSE, quietly=TRUE)
+library(dplyr, warn.conflicts = FALSE, quietly=TRUE)
+library(tibble, warn.conflicts = FALSE, quietly=TRUE)
+library(ggplot2, warn.conflicts = FALSE, quietly=TRUE)
+#library(rowr, warn.conflicts = FALSE, quietly=TRUE)
 
 ```
+
+## Read in the data
+To perform MAIC's, the following data is required:
+
+* Individual patient data (IPD) from the intervention trial
+* Psuedo data for the comparator trial
+* Baseline data from the comparator trial
+```{r}
+base.dir <- 'G:/Clients/Roche/2797 Development of R Code for MAIC and mixture cure models/Project/2 Exploratory'
+data.path <- file.path(base.dir,'Simulated datasets')
+
+intervention_input <- read.csv(file.path(data.path, "Simulated dataset.csv")) %>%
+  filter(trt=="A") 
+comparator_ipd <- read.csv(file.path(data.path, "Simulated dataset.csv")) %>%
+  filter(trt=="B") 
+target_pop <- read.csv(file.path(data.path,"Aggregate data.csv")) # Baseline agregate data
+head(intervention_input)
+head(comparator_ipd)
+target_pop
+
+```
+
+
+
+## Standardise input dataset
+The input data needs some manipulation to standardise the variable names and ensure the data will work in the MAIC functions
+
+* The survival variables should include:
+  * Time - a numeric value
+  * Event - a binary variable (event=1, censor=0)
+  * Treatment 
+* The binary variables should be called:
+  * Binary_event - a binary variable (event=1, no event=0)
+  * Treatment
+* All the  matching covariates names should match in intervention_input and target_pop and binary matching covariates should be coded 1 and 0
+
+```{r}
+Intervention_IPD <-  intervention_input %>%
+  # EDIT Rename Time and Event to standardise
+  dplyr::rename(
+    SUBJID=ID,
+    Time = Time,
+    Event = Event,
+    Treatment = trt,
+    Binary_event = Binary_event
+  ) %>%
+  # Create baseline categories to match 
+  mutate(# EDIT Baseline vars - make vars binary to match aggregate data
+         Male=ifelse(gender=="Male",1,0))
+
+# EDIT choose your matching covs
+names(Intervention_IPD)
+matchingvars <- c("Smoke", "ECOG0", "Male",  "age")
+
+target_pop_standard <- target_pop %>%
+  #EDIT
+  rename(N=N,
+         age=age.mean, Male=prop.male, Smoke=prop.smoke, ECOG0=prop.ecog0
+         ) %>%
+  select(N, matchingvars)
+
+```
+
+## Estimate weights
+```{r}
+estimate_weights <- function(intervention_data, baseline_comparator , matching_vars, ...){
+  
+  # add in check that intervention_data and baseline_comparator contains matching_vars
+  
+  #Centre covariates
+  X.EM.0 <- sweep(as.matrix(intervention_data[,matching_vars]), 2,
+                  as.numeric(baseline_comparator[1,matching_vars]), '-')
+
+  #Estimate weights
+  opt1 <- optim(par = rep(0,length(matching_vars)), fn = objfn, gr = gradfn, X = X.EM.0, ...)
+  a1 <- opt1$par
+  wt <- exp(X.EM.0 %*% a1)
+  wt <- ifelse(wt<0.000001, 0, wt) # if weights are smaller than 10^-6 then round them to 0
+  colnames(wt) <- list("wt")
+
+  #Rescale weights
+  wt.rs <- (wt / sum(wt)) *(sum(wt)^2/sum(wt^2))   # rescaled weights
+  colnames(wt.rs) <- list("wt.rs")
+  #Return a data frame with weights attached intervention_wts
+
+  return(list(wt = wt, wt.rs = wt.rs, a1 = a1))
+
+}
+
+weights <- estimate_weights(intervention_data=Intervention_IPD, baseline_comparator= target_pop_standard, matching_vars=matchingvars, method = "BFGS")
+
+
+```
+
