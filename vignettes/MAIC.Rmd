@@ -1,5 +1,5 @@
 ---
-title: "MAIC"
+title: "Matching-Adjusted Indirect Comparison: Example using the MAIC package"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{MAIC}
@@ -14,13 +14,21 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Package:MAIC
+# Introduction
+This document describes the steps required to perform a matching-adjusted
+indirect comparison (MAIC) analysis using the 'MAIC' package in R for a
+disconnected treatment network where the endpoint of interest is either
+time-to-event or binary.
 
-## Introduction
+The methods described in this document are based on Signorovitch et al. 2012 and
+the National Institute for Health and Care Excellence (NICE) Decision Support
+Unit (DSU) Technical Support Document (TSD) 18.
 
-## Set up packages
 
-Install packages - these dependacies need to be built into the package at some point
+# Set up packages
+
+Install packages - these dependencies need to be built into the package at some
+point
 
 ```{r setup}
 library(MAIC)
@@ -34,11 +42,11 @@ library(ggplot2, warn.conflicts = FALSE, quietly=TRUE)
 
 ```
 
-## Read in the data
-To perform MAIC's, the following data is required:
+# Read in the data
+To perform MAICs, the following data is required:
 
 * Individual patient data (IPD) from the intervention trial
-* Psuedo data for the comparator trial
+* Pseudo data for the comparator trial
 * Baseline data from the comparator trial
 ```{r}
 base.dir <- 'G:/Clients/Roche/2797 Development of R Code for MAIC and mixture cure models/Project/2 Exploratory'
@@ -57,8 +65,8 @@ target_pop
 
 
 
-## Standardise input dataset
-The input data needs some manipulation to standardise the variable names and ensure the data will work in the MAIC functions
+# Standardize input dataset
+The input data needs some manipulation to standardize the variable names and ensure the data will work in the MAIC functions
 
 * The survival variables should include:
   * Time - a numeric value
@@ -96,34 +104,101 @@ target_pop_standard <- target_pop %>%
 
 ```
 
-## Estimate weights
+# Estimate weights
+
+## Statistical theory 
+As described by Signorovitch et al. (supplemental appendix), we must find a
+$\beta$, such that re-weighting baseline characteristics, $x_{i,ild}$, by
+$\hat{\omega}_i=\exp{(x_{i,ild}.\beta)}$, exactly matches the mean baseline
+characteristics for the data source for which only aggregate data is available.
+That is, we must find a solution to: $$ \bar{x}_{agg}\sum_{i=1}^n
+\exp{(x_{i,ild}.\beta)}  = \sum_{i=1}^n x_{i,ild}.\exp{(x_{i,ild}.\beta)}\qquad
+(1)  $$ This estimator is equivalent to solving the equation $$ 0 = \sum_{i=1}^n
+(x_{i,ild} -  \bar{x}_{agg} ).\exp{(x_{i,ild}.\beta)}$$ without loss of
+generality, it can be assumed that  $\bar{x}_{agg} = 0$ (e.g we could transform
+baseline characteristics in both trials by subtracting  $\bar{x}_{agg})$
+leaving the estimator $$0 = \sum_{i=1}^n (x_{i,ild})\exp{(x_{i,ild}.\beta)}.$$
+The right hand side of this estimator is the first derivative of $$ Q(\beta) =
+\sum_{i=1}^n  \exp{(x_{i,ild}.\beta)} $$ As described by Signorovitch et al
+(supplemental appendix), $Q(\beta)$ is convex and therefore any finite solution
+to (1) is unique and corresponds to the global minimum of $Q(\beta)$.
+
+
+## Centering of baseline characteristics
+As described above, in order to facilitate estimation of patient weights,
+$\hat{\omega}_i$, it is necessary to center the baseline characteristics of the
+intervention data using the mean baseline characteristics from the comparator
+data.
+Note, as described by Phillippo, it is necessary to balance on both mean and
+standard deviation for continuous variables (where possible).
+
 ```{r}
-estimate_weights <- function(intervention_data, baseline_comparator , matching_vars, ...){
-  
-  # add in check that intervention_data and baseline_comparator contains matching_vars
-  
-  #Centre covariates
-  X.EM.0 <- sweep(as.matrix(intervention_data[,matching_vars]), 2,
-                  as.numeric(baseline_comparator[1,matching_vars]), '-')
+Intervention_IPD <- Intervention_IPD %>% 
+                    mutate(Smoke.centered = Smoke - target_pop$prop.smoke,
+                           ECOG0.centered = ECOG0 - target_pop$prop.ecog0,
+                           Male.centered = Male - target_pop$prop.male,
+                           age.centered = age - target_pop$age.mean,
+                           age.var.centered = age^2 - (target_pop$age.mean^2 + target_pop$age.sd^2))
+head(Intervention_IPD)
 
-  #Estimate weights
-  opt1 <- optim(par = rep(0,length(matching_vars)), fn = objfn, gr = gradfn, X = X.EM.0, ...)
-  a1 <- opt1$par
-  wt <- exp(X.EM.0 %*% a1)
-  wt <- ifelse(wt<0.000001, 0, wt) # if weights are smaller than 10^-6 then round them to 0
-  colnames(wt) <- list("wt")
-
-  #Rescale weights
-  wt.rs <- (wt / sum(wt)) *(sum(wt)^2/sum(wt^2))   # rescaled weights
-  colnames(wt.rs) <- list("wt.rs")
-  #Return a data frame with weights attached intervention_wts
-
-  return(list(wt = wt, wt.rs = wt.rs, a1 = a1))
-
-}
-
-weights <- estimate_weights(intervention_data=Intervention_IPD, baseline_comparator= target_pop_standard, matching_vars=matchingvars, method = "BFGS")
+```
 
 
+## Optimization procedure
+Following centering of the baseline characteristics of the intervention study,
+the optimization procedure can be performed to minimize $Q(\beta) =
+\sum_{i=1}^n \exp{(x_{i,ild}.\beta)}$ and weights estimated using the
+estimate_weights function in the MAIC package.
+
+```{r}
+# intervention_wts <- estimate_weights(intervention_data=Intervention_IPD,
+#                                     matching_vars= c("Smoke.centered",
+#                                                      "ECOG0.centered",
+#                                                       "Male.centered",
+#                                                       "age.centered",
+#                                                       "age.var.centered")
+#                                     )
+# 
+# head(intervention_wts)
+```
+
+
+# Weight diagnostics
+Following the calculation of weights, it is necessary to determine whether the
+optimization procedure has worked correctly and whether the weights derived are
+sensible.
+
+## Has the optimization worked?
+
+## Effective sample size
+
+For a weighted estimate, the effective sample size (ESS) is the number of independent non-weighted individuals that would be required to give an estimate with the same precision as the weighted sample estimate. The approximate effective sample size is calculated as:
+$$  \frac{({ \sum_{i=1}^n \hat{\omega}_i })^2}{ \sum_{i=1}^n \hat{\omega^2}_i  } $$
+The MAIC package includes a function to estimate the ESS. The function is applied to the intervention dataset that includes the weights. In this instance, the weight column is called "WT" which is the default and therefore does not need to be specified. 
+```{r}
+# ESS <- estimate.ess(intervention_wts)
+# ESS
+
+```
+A small ESS, relative to the original sample size, is an indication that the weights are highly variable due to a lack of population overlap, and that the estimate may be unstable.
+
+
+## Rescaled weights
+It is easier to examine the distribution of the weights by scaling them, so that the rescaled weights are relative to the original unit weights of each individual; in other words, a rescaled weight $>$ 1 means that an individual carries more weight in the re-weighted population than the original data. The rescaled weight are calculated as:
+
+$$\tilde{\omega}_i  =  \frac{  \hat{\omega}_i}{ \sum_{i=1}^n \hat{\omega}_i }.N $$
+
+A histogram of the rescaled weights (along with a histogram of the weights) can be produced using the `hist_wts()` function in the MAIC package.
+```{r}
+# histogram <- hist_wts(intervention_wts)
+# histogram
+
+```
+
+To further understand the patient profile of each weight/rescaled weight, the `profile_wts()` function outputs each unique weight/rescaled weight with the corresponding patient profile. This output is useful when interpreting the histogram of rescaled weights as you can see for example who the patients are that carry more weight in the re-weighted population than the original data. This function is most useful when only matching on binary variables as there are less unique weights and therefore interpretation is easier.
+
+```{r}
+# weight_profiles <- profile_wts(intervention_wts, matchingvars)
+# head(weight_profiles)
 ```
 
