@@ -35,27 +35,28 @@ gradfn <- function(a1, X){
 #'   THE DECISION SUPPORT UNIT, December 2016
 #'
 #' @export
-estimate_weights <- function(intervention_data, baseline_comparator , matching_vars, ...){
+estimate_weights <- function(intervention_data, matching_vars, ...){
 
-  #Centre covariates
-  X.EM.0 <- sweep(as.matrix(intervention_data[,matching_vars]), 2,
-                  as.numeric(AD[1,matching_vars]), '-')
+  opt1 <- optim(par = rep(0,dim(intervention_data[, matching_vars])[2]),
+                      fn = objfn,
+                      gr = gradfn,
+                      X = as.matrix(intervention_data[, matching_vars]),
+                      method = "BFGS")
 
-  #Estimate weights
-  opt1 <- optim(par = rep(0,length(matching_vars)), fn = objfn, gr = gradfn, X = X.EM.0, method = "BFGS")
   a1 <- opt1$par
-  wt <- exp(X.EM.0 %*% a1)
-  wt <- ifelse(wt<0.000001, 0, wt) # if weights are smaller than 10^-6 then round them to 0
-  colnames(wt) <- list("wt")
 
-  #Rescale weights
-  wt.rs <- (wt / sum(wt)) *(sum(wt)^2/sum(wt^2))   # rescaled weights
-  colnames(wt.rs) <- list("wt.rs")
-  #Return a data frame with weights attached intervention_wts
 
-  return(list(wt = wt, wt.rs = wt.rs, a1 = a1))
+  # Calculation of weights.
+  WT <- as.vector(exp(as.matrix(intervention_data[, matching_vars]) %*% a1))
 
-  }
+  # rescaled weights
+  WT_RS <- (WT / sum(WT)) * dim(intervention_data)[1]
+
+  # combine intervention_data with weights
+  intervention_wts <- cbind(intervention_data, WT, WT_RS)
+
+  return(intervention_wts)
+}
 
 # Functions for summarizing the weights ---------------------------------
 
@@ -80,9 +81,9 @@ estimate_weights <- function(intervention_data, baseline_comparator , matching_v
 #' @export
 estimate_ess <- function(intervention_wts, wt_col=WT){
 
-  # Estimate ESS [ess <- (sum(intervention_wts$wt_col)^2/sum(intervention_wts$wt_col^2))]
+  ess <- (sum(intervention_wts$wt_col)^2/sum(intervention_wts$wt_col^2))
 
-  # Return ESS
+  return(ess)
 }
 
 #' Summarize the weight values
@@ -104,11 +105,17 @@ estimate_ess <- function(intervention_wts, wt_col=WT){
 #' @seealso \code{\link{estimate_weights}}
 #' @export
 summarize_wts <- function(intervention_wts, wt_col=WT){
+    summary <- intervention_wts %>%
+                summarise(
+                          min = min(intervention_wts$wt),
+                          max = max(intervention_wts$wt),
+                          median = median(intervention_wts$wt),
+                          mean = mean(intervention_wts$wt),
+                          sd = sd(intervention_wts$wt)
+                          )
+    return(summary)
+  }
 
-  # Summarize the minimum, maximum, median, mean and SD of the weights
-
-  # Return data frame summarizing the minimum, maximum, median, mean and SD of the weights
-}
 
 #' Produce histograms of weights and rescaled weights
 #'
@@ -124,20 +131,28 @@ summarize_wts <- function(intervention_wts, wt_col=WT){
 #'   containing the intervention individual patient data and the MAIC propensity
 #'   weights. The default is WT_RS.
 #'
-#' @return A data frame that inlcudes a summary (minimum, maximum, median, mean, sd) of the weights.
+#' @return A histogram plot of the weights and rescaled weights.
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-hist_wts <- function(intervention_wts, wt_col=WT, rs_wt_col=WT_RS){
+hist_wts <- function(intervention_wts, wt_col="WT", rs_wt_col="WT_RS"){
 
-  # Plot histogram of weights
+  wt_data <- data[,c(wt_col, rs_wt_col)] %>% # select the weights and rescaled weights only
+    rename("Weights" = wt_col, "Rescaled weights" = rs_wt_col) %>% # rename the weight columns for histogram output
+    gather() # change the data so there is one column of weights and another to define whether the weight is weight/rescaled weight
 
-  # Plot histogram of rescaled weights
+  hist_plot <- qplot(data = wt_data,
+                     value,
+                     geom="histogram",
+                     xlab = "Histograms of weights and rescaled weights",
+                     binwidth=0.05) +
+    facet_wrap(~key,  ncol=1) + # creates two hisotgrams (one for weights and one for rescaled weights)
+    theme_bw()+
+    theme(axis.title = element_text(size = 16),
+          axis.text = element_text(size = 16))+
+    ylab("Frequency")
 
-  # Combine histograms onto one plot (one on top of the other)
-
-  # Return ggplot object containing a histogram of the weights and a histogram
-  # of the recaled weights
+  return(hist_plot)
 }
 
 #' Produce a data frame of the weights assigned to alternative patient profiles
@@ -157,6 +172,9 @@ hist_wts <- function(intervention_wts, wt_col=WT, rs_wt_col=WT_RS){
 #' @param wt_col The name of the weights column in the data frame containing the
 #'   intervention individual patient data and the MAIC propensity weights. The
 #'   default is WT.
+#' @param rs_wt_col The name of the rescaled weights column in the data frame
+#'   containing the intervention individual patient data and the MAIC propensity
+#'   weights. The default is WT_RS.
 #' @param matching_vars A character vector giving the names of the covariates to
 #'   use in matching. These names must match the column names in
 #'   intervention_data and baseline_comparator.
@@ -166,15 +184,11 @@ hist_wts <- function(intervention_wts, wt_col=WT, rs_wt_col=WT_RS){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-profile_wts <- function(intervention_wts, wt_col=WT, matching_vars){
+profile_wts <- function(intervention_wts, wt_col="WT", rs_wt_col="WT_RS", matching_vars){
 
-  # Filter the intervention_wts data frame to only contain each unique set of
-  # patient characteritics with the weight assigned
-
-  # Sort the data frame by weight (smallest to largest)
-
-  # Return data frame containing a column with a unique set of weights and the
-  # set of patient characteristics that each weight was assigned to
+  profile_data <- intervention_wts[, c(wt_col, rs_wt_col, matching_vars)] %>%
+                  distinct()
+  return(profile_data)
 }
 
 #' Weight diagnostics
