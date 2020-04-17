@@ -15,6 +15,7 @@ knitr::opts_chunk$set(
 ```
 
 # Introduction
+
 This document describes the steps required to perform a matching-adjusted
 indirect comparison (MAIC) analysis using the 'MAIC' package in R for a
 disconnected treatment network where the endpoint of interest is either
@@ -43,6 +44,7 @@ library(ggplot2, warn.conflicts = FALSE, quietly=TRUE)
 ```
 
 # Read in the data
+
 To perform MAICs, the following data is required:
 
 * Individual patient data (IPD) from the intervention trial
@@ -66,6 +68,7 @@ target_pop
 
 
 # Standardize input dataset
+
 The input data needs some manipulation to standardize the variable names and ensure the data will work in the MAIC functions
 
 * The survival variables should include:
@@ -107,6 +110,7 @@ target_pop_standard <- target_pop %>%
 # Estimate weights
 
 ## Statistical theory 
+
 As described by Signorovitch et al. (supplemental appendix), we must find a
 $\beta$, such that re-weighting baseline characteristics, $x_{i,ild}$, by
 $\hat{\omega}_i=\exp{(x_{i,ild}.\beta)}$, exactly matches the mean baseline
@@ -125,6 +129,7 @@ to (1) is unique and corresponds to the global minimum of $Q(\beta)$.
 
 
 ## Centering of baseline characteristics
+
 As described above, in order to facilitate estimation of patient weights,
 $\hat{\omega}_i$, it is necessary to center the baseline characteristics of the
 intervention data using the mean baseline characteristics from the comparator
@@ -145,6 +150,7 @@ head(Intervention_IPD)
 
 
 ## Optimization procedure
+
 Following centering of the baseline characteristics of the intervention study,
 the optimization procedure can be performed to minimize $Q(\beta) =
 \sum_{i=1}^n \exp{(x_{i,ild}.\beta)}$ and weights estimated using the
@@ -164,41 +170,62 @@ estimate_weights function in the MAIC package.
 
 
 # Weight diagnostics
+
 Following the calculation of weights, it is necessary to determine whether the
 optimization procedure has worked correctly and whether the weights derived are
 sensible.
 
+
 ## Has the optimization worked?
 
-## Effective sample size
 
-For a weighted estimate, the effective sample size (ESS) is the number of independent non-weighted individuals that would be required to give an estimate with the same precision as the weighted sample estimate. The approximate effective sample size is calculated as:
-$$  \frac{({ \sum_{i=1}^n \hat{\omega}_i })^2}{ \sum_{i=1}^n \hat{\omega^2}_i  } $$
-The MAIC package includes a function to estimate the ESS. The function is applied to the intervention dataset that includes the weights. In this instance, the weight column is called "WT" which is the default and therefore does not need to be specified. 
+## Weights
+
+The `summarize_wts()` function in the MIAC package produces a quick summary of
+the weights that have been estimated.
+
 ```{r}
-# ESS <- estimate.ess(intervention_wts)
-# ESS
-
+# weight_summary <- summarize_wts(intervention_wts)
+# weight_summary
 ```
-A small ESS, relative to the original sample size, is an indication that the weights are highly variable due to a lack of population overlap, and that the estimate may be unstable.
 
 
 ## Rescaled weights
+
 It is easier to examine the distribution of the weights by scaling them, so that the rescaled weights are relative to the original unit weights of each individual; in other words, a rescaled weight $>$ 1 means that an individual carries more weight in the re-weighted population than the original data. The rescaled weight are calculated as:
 
 $$\tilde{\omega}_i  =  \frac{  \hat{\omega}_i}{ \sum_{i=1}^n \hat{\omega}_i }.N $$
 
 A histogram of the rescaled weights (along with a histogram of the weights) can be produced using the `hist_wts()` function in the MAIC package.
+
 ```{r}
 # histogram <- hist_wts(intervention_wts)
 # histogram
 
 ```
 
-To further understand the patient profile of each weight/rescaled weight, the `profile_wts()` function outputs each unique weight/rescaled weight with the corresponding patient profile. This output is useful when interpreting the histogram of rescaled weights as you can see for example who the patients are that carry more weight in the re-weighted population than the original data. This function is most useful when only matching on binary variables as there are less unique weights and therefore interpretation is easier.
+To further understand the patient profile of each weight/rescaled weight, the `profile_wts()` function outputs each unique weight and rescaled weight with the corresponding patient profile. This output is useful when interpreting the histogram of rescaled weights as you can see for example who the patients are that carry more weight in the re-weighted population than the original data. This function is most useful when only matching on binary variables as there are less unique weights and therefore interpretation is easier.
 
 ```{r}
 # weight_profiles <- profile_wts(intervention_wts, matchingvars)
 # head(weight_profiles)
 ```
+
+
+## Effective sample size
+
+For a weighted estimate, the effective sample size (ESS) is the number of independent non-weighted individuals that would be required to give an estimate with the same precision as the weighted sample estimate. The approximate effective sample size is calculated as:
+$$  \frac{({ \sum_{i=1}^n \hat{\omega}_i })^2}{ \sum_{i=1}^n \hat{\omega^2}_i  } $$
+
+The MAIC package includes a function to estimate the ESS. The function is applied to the intervention dataset that includes the weights. In this instance, the weight column is called "WT" which is the default and therefore does not need to be specified. 
+
+```{r}
+# ESS <- estimate.ess(intervention_wts)
+# ESS
+
+```
+
+A small ESS, relative to the original sample size, is an indication that the weights are highly variable due to a lack of population overlap, and that the estimate may be unstable.
+
+
 
