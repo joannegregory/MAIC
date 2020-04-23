@@ -157,15 +157,17 @@ the optimization procedure can be performed to minimize $Q(\beta) =
 estimate_weights function in the MAIC package.
 
 ```{r}
-# intervention_wts <- estimate_weights(intervention_data=Intervention_IPD,
-#                                     matching_vars= c("Smoke.centered",
-#                                                      "ECOG0.centered",
-#                                                       "Male.centered",
-#                                                       "age.centered",
-#                                                       "age.var.centered")
-#                                     )
-# 
-# head(intervention_wts)
+intervention_wts <- estimate_weights(intervention_data=Intervention_IPD,
+                                    matching_vars= c("Smoke.centered",
+                                                     "ECOG0.centered",
+                                                      "Male.centered",
+                                                      "age.centered",
+                                                      "age.var.centered")
+                                    )
+
+head(intervention_wts$intervention_wts_data)
+intervention_wts$matching_vars
+
 ```
 
 
@@ -185,7 +187,7 @@ The `summarize_wts()` function in the MIAC package produces a quick summary of
 the weights that have been estimated.
 
 ```{r}
-# weight_summary <- summarize_wts(intervention_wts)
+# weight_summary <- summarize_wts(intervention_wts=intervention_wts$intervention_wts_data)
 # weight_summary
 ```
 
@@ -199,7 +201,7 @@ $$\tilde{\omega}_i  =  \frac{  \hat{\omega}_i}{ \sum_{i=1}^n \hat{\omega}_i }.N 
 A histogram of the rescaled weights (along with a histogram of the weights) can be produced using the `hist_wts()` function in the MAIC package.
 
 ```{r}
-# histogram <- hist_wts(intervention_wts)
+# histogram <- hist_wts(intervention_wts=intervention_wts$intervention_wts_data)
 # histogram
 
 ```
@@ -207,7 +209,7 @@ A histogram of the rescaled weights (along with a histogram of the weights) can 
 To further understand the patient profile of each weight/rescaled weight, the `profile_wts()` function outputs each unique weight and rescaled weight with the corresponding patient profile. This output is useful when interpreting the histogram of rescaled weights as you can see for example who the patients are that carry more weight in the re-weighted population than the original data. This function is most useful when only matching on binary variables as there are less unique weights and therefore interpretation is easier.
 
 ```{r}
-# weight_profiles <- profile_wts(intervention_wts, matchingvars)
+# weight_profiles <- profile_wts(intervention_wts=intervention_wts$intervention_wts_data, matchingvars=intervention_wts$matching_vars)
 # head(weight_profiles)
 ```
 

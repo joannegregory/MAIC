@@ -4,7 +4,12 @@
 \alias{profile_wts}
 \title{Produce a data frame of the weights assigned to alternative patient profiles}
 \usage{
-profile_wts(intervention_wts, wt_col = WT, matching_vars)
+profile_wts(
+  intervention_wts,
+  wt_col = "WT",
+  rs_wt_col = "WT_RS",
+  matching_vars
+)
 }
 \arguments{
 \item{intervention_wts}{A data frame containing individual patient data from
@@ -14,6 +19,10 @@ using estimate_weights).}
 \item{wt_col}{The name of the weights column in the data frame containing the
 intervention individual patient data and the MAIC propensity weights. The
 default is WT.}
+
+\item{rs_wt_col}{The name of the rescaled weights column in the data frame
+containing the intervention individual patient data and the MAIC propensity
+weights. The default is WT_RS.}
 
 \item{matching_vars}{A character vector giving the names of the covariates to
 use in matching. These names must match the column names in

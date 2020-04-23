@@ -27,8 +27,8 @@ gradfn <- function(a1, X){
 #'   as the method for maximum likelihood optimisation. The default is method =
 #'   "BFGS". Refer to \code{\link[stats]{optim}} for options.
 #'
-#' @return A data frame named intervention_wts including the intervention data
-#'   with additional columns named WT (weights) and WT_RS (rescaled weights).
+#' @return A list containing 2 objects. First, a data frame named intervention_wts_data including the intervention data
+#'   with additional columns named WT (weights) and WT_RS (rescaled weights). Second, a vector of the matching variables names used.
 #'
 #' @references NICE DSU TECHNICAL SUPPORT DOCUMENT 18: METHODS FOR
 #'   POPULATION-ADJUSTED INDIRECT COMPARISONS IN SUBMSISSIONS TO NICE, REPORT BY
@@ -54,8 +54,9 @@ estimate_weights <- function(intervention_data, matching_vars, ...){
 
   # combine intervention_data with weights
   intervention_wts <- cbind(intervention_data, WT, WT_RS)
+  output <- list(intervention_wts_data=intervention_wts, matching_vars=matching_vars)
 
-  return(intervention_wts)
+  return(output)
 }
 
 # Functions for summarizing the weights ---------------------------------

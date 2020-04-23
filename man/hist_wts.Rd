@@ -4,7 +4,7 @@
 \alias{hist_wts}
 \title{Produce histograms of weights and rescaled weights}
 \usage{
-hist_wts(intervention_wts, wt_col = WT, rs_wt_col = WT_RS)
+hist_wts(intervention_wts, wt_col = "WT", rs_wt_col = "WT_RS")
 }
 \arguments{
 \item{intervention_wts}{A data frame containing individual patient data from
@@ -20,7 +20,7 @@ containing the intervention individual patient data and the MAIC propensity
 weights. The default is WT_RS.}
 }
 \value{
-A data frame that inlcudes a summary (minimum, maximum, median, mean, sd) of the weights.
+A histogram plot of the weights and rescaled weights.
 }
 \description{
 Produce a plot containing two histograms (one of the weights and one of the recaled weights).
