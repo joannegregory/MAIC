@@ -1,9 +1,10 @@
-# # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# 2797 exploratory - testing out the code                        #
-# Author: SS/ JG (23.04.2020)                                    #
-# # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# 2797 exploratory - testing out the code                         #
+# Author: SS/ JG (23.04.2020)                                     #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Load libraries --------------------------------------------------
 library(plyr)
 library(dplyr)
@@ -15,54 +16,84 @@ library(survminer)
 library(survminer)
 
 
-# Load data ---------------------------------------------------------------
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Directories -----------------------------------------------------
+base_dir <- 'G:/Clients/Roche/2797 Development of R Code for MAIC and mixture cure models/Project/2 Exploratory'
+data_path <- file.path(base_dir,'Simulated datasets')
 
 
 
-# Intervention data
-base.dir <- 'G:/Clients/Roche/2797 Development of R Code for MAIC and mixture cure models/Project/2 Exploratory'
-data.path <- file.path(base.dir,'Simulated datasets')
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Load data -------------------------------------------------------
 
-# Read in ADaM data and rename
-adsl <- read.csv(file.path(data.path, "adsl.csv")) %>%
+#### Intervention data
+# Read in ADaM data and rename variables of interest
+adsl <- read.csv(file.path(data_path, "adsl.csv")) %>% # subject level data
   mutate(SEX=ifelse(SEX=="Male",1,0))
 
-adrs <- read.csv(file.path(data.path, "adrs.csv")) %>%
+adrs <- read.csv(file.path(data_path, "adrs.csv")) %>% # response data
   filter(PARAM=="Response") %>%
-  select(USUBJID, ARM, Binary_event=AVAL)
+  select(USUBJID, ARM, Binary_event=AVAL) ## change "Binary_event" to "response"?
 
-adtte <- read.csv(file.path(data.path, "adtte.csv")) %>%
+adtte <- read.csv(file.path(data_path, "adtte.csv")) %>% # time to event data
   filter(PARAMCD=="OS") %>%
   mutate(Event=1-CNSR) %>%
   select(USUBJID, ARM, Time=AVAL, Event)
 
-
+# Combine all intervention data
 intervention_input <- join_all(list(adsl, adrs, adtte), type = "full", by=c("USUBJID", "ARM"))
 
 
+#### Comparator pseudo data
 
-comparator.surv <- read.csv(file.path(data.path,"psuedo_IPD.csv"))
-comparator.n <- 300
-comparator.prop.events <- 0.4
-comparator.binary <- data.frame("Binary_event"=c(rep(1,comparator.n*comparator.prop.events),rep(0, comparator.n*(1-comparator.prop.events))))
+# read in pseudo survival data
+comparator_surv <- read.csv(file.path(data_path,"psuedo_IPD.csv"))
 
-# join comparator data note not a 1:1 relationship - the rows do not represent the same observation
-comparator_input <- cbind(comparator.surv, comparator.binary)
+# simulate response data based on the known proportion of responders
+comparator_n <- 300 # total number of patients in the comparator data
+comparator_prop_events <- 0.4 # proportion of responders
+comparator_binary <- data.frame("Binary_event"=
+                                  c(rep(1,comparator_n*comparator_prop_events),
+                                    rep(0, comparator_n*(1-comparator_prop_events))))
 
-# Baseline agregate data
-target_pop <- read.csv(file.path(data.path,"Aggregate data.csv"))
+# join survival and response comparator data note not a 1:1 relationship - the
+# rows do not represent the same observation
+comparator_input <- cbind(comparator_surv, comparator_binary)
+
+# Baseline agregate data for the comparator popultion
+target_pop <- read.csv(file.path(data_path,"Aggregate data.csv"))
 target_pop
 
-##### Calculate weights ------------------------------------------------------------
 
-# center baseline characteristics
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Estimate weights, rescaled weight and join data -----------------
+
+#### center baseline characteristics
+# (subtract the aggregate comparator data from the corresponding column of intervention PLD)
 intervention_data <- intervention_input %>%
-                          mutate(Age.centered = AGE - target_pop$age.mean,
-                                 Sex.centered = SEX - target_pop$prop.male,
-                                Smoke.centered = SMOKE - target_pop$prop.smoke,
-                                 ECOG0.centered = ECOG0 - target_pop$prop.ecog0)
-head(intervention)
-match.cov <- c("Age.centered", "Sex.centered", "Smoke.centered", "ECOG0.centered")
+                          mutate(Age_centered = AGE - target_pop$age.mean,
+                                 # it is necessary to balance on both mean and standard deviation for continous variables:
+                                 Age_squared_centered = (AGE^2) - (target_pop$age.mean^2 + target_pop$age.sd^2),
+                                 Sex_centered = SEX - target_pop$prop.male,
+                                 Smoke_centered = SMOKE - target_pop$prop.smoke,
+                                 ECOG0_centered = ECOG0 - target_pop$prop.ecog0)
+head(intervention_data)
+names(intervention_data)
+
+# cent_match_cov <- c("Age_centered",
+#                     "Age_squared.centered",
+#                     "Sex_centered",
+#                     "Smoke_centered",
+#                     "ECOG0_centered")
+
+cent_match_cov <- names(intervention_data)[11:15]
+cent_match_cov
+
+match_cov <- names(intervention_data)[4:7]
+match_cov
+
 
 #### optimisation procedure and calculation of weights
 
@@ -78,125 +109,217 @@ gradfn <- function(a1, X){
 }
 
 
-## The following is the in built R function used to optimise Q(b) ##
-## using Newton-Raphson techniques ##
+# Function to estimate weights, create analysis dataset and output a
+# character vector of the variable names
+estimate_weights <- function(intervention_data, cent_vars, vars, comparator_data){
 
-estimate_weights <- function(intervention_data, vars, comparator_data){
-
-
-  print(opt1 <- optim(par = rep(0,dim(intervention_data[, vars])[2]),
+  # Optimise Q(b) using Newton-Raphson techniques
+  print(opt1 <- optim(par = rep(0,dim(intervention_data[,cent_vars])[2]),
                       fn = objfn,
                       gr = gradfn,
-                      X = as.matrix(intervention_data[, vars]),
+                      X = as.matrix(intervention_data[,cent_vars]),
                       method = "BFGS"))
 
   a1 <- opt1$par
 
 
   # Calculation of weights.
-  wt <- as.vector(exp(as.matrix(intervention_data[, vars]) %*% a1))
+  wt <- as.vector(exp(as.matrix(intervention_data[,cent_vars]) %*% a1))
 
   # rescaled weights
-  wt.rs <- (wt / sum(wt)) * dim(intervention_data)[1]
+  wt_rs <- (wt / sum(wt)) * dim(intervention_data)[1]
 
   # combine data with weights
-  data.with.wts <- cbind(intervention_data, wt, wt.rs)
-# add weight=1 to comparator data
-  comparator_data.wts <- comparator_data %>% mutate(wt=1, wt.rs=1)
- # Add on comparator data
-   all_data <- rbind.fill(data.with.wts, comparator_data.wts)
-  output <- list(analysis_data=all_data, matching_vars=vars)
+  data_with_wts <- cbind(intervention_data, wt, wt_rs)
+
+  # assign weight=1 to comparator data
+  comparator_data_wts <- comparator_data %>% mutate(wt=1, wt_rs=1)
+
+  # Join comparator data with the intervention data
+  all_data <- rbind.fill(data_with_wts, comparator_data_wts)
+
+  # Outputs are:
+  #       - the analysis data (intervention PLD, weights and comparator pseudo PLD)
+  #       - A charcacter vector with the name sof the matching variables
+  output <- list(analysis_data = all_data,
+                 centered_matching_vars = cent_vars,
+                 matching_vars = vars
+                 )
 
   return(output)
 
 }
 
-est.weights <- estimate_weights(intervention_data=intervention_data, vars=match.cov, comparator_data=comparator_input)
-head(est.weights$analysis_data)
 
-data_for_diagnostics <- est.weights$analysis_data %>% filter(ARM=="A")
+est_weights <- estimate_weights(intervention_data=intervention_data,
+                                cent_vars = cent_match_cov,
+                                vars = match_cov,
+                                comparator_data=comparator_input)
 
-#### Weight diagnostics ----------------------------------------------------------------------
+head(est_weights$analysis_data)
+est_weights$matching_vars
+est_weights$centered_matching_vars
 
-# ESS
-estimate.ess <- function(data, wt=wt){
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Weight diagnostics ----------------------------------------------
+
+# Weight diagnostics with the intervention data only:
+data_for_diagnostics <- est_weights$analysis_data %>%
+                        filter(ARM=="A")
+
+#### ESS
+
+# Function to caclulate ESS:
+estimate_ess <- function(data, wt=wt){
   ess <- sum(data$wt)^2/sum(data$wt^2)
   return(ess)
 }
-ESS <- estimate.ess(data_for_diagnostics)
+
+ESS <- estimate_ess(data_for_diagnostics)
 ESS
 
 
-# Weights summary
-summarize.wts <- function(intervention_wts, wt=wt){
-  summary <- intervention_wts %>%
+#### Weights summary
+
+# Function to caclulate min, max, median, mean and sd of wts:
+summarize_wts <- function(data, wt=wt){
+  summary <- data %>%
     summarise(
-      min = min(intervention_wts$wt),
-      max = max(intervention_wts$wt),
-      median = median(intervention_wts$wt),
-      mean = mean(intervention_wts$wt),
-      sd = sd(intervention_wts$wt)
+      min = min(data$wt),
+      max = max(data$wt),
+      median = median(data$wt),
+      mean = mean(data$wt),
+      sd = sd(data$wt)
     )
   return(summary)
 }
 
-weight.summ <- summarize.wts(data_for_diagnostics)
-weight.summ
+weight_summ <- summarize_wts(data_for_diagnostics)
+weight_summ
 
 
-# Histograms
+##### Weight profiles
+
+profile_wts <- function(data, wt=wt, wt_rs=wt_rs, vars){
+  profile_data <-  data %>%
+                  select_if(names(data) %in% vars ==TRUE)
+
+  wts <- data %>%
+          select(wt, wt_rs)
+
+  profile_wts <- cbind(wts, profile_data) %>%
+                 distinct()
+
+  return(profile_wts)
+}
+
+profile_wts(data=data_for_diagnostics, vars = est_weights$matching_vars)
 
 
-hist_wts <- function(data, wt_col="wt", rs_wt_col="wt.rs") {
+#### Histograms
 
-wt.data <- data[,c(wt_col, rs_wt_col)] %>%
-            rename("Weights" = wt_col, "Rescaled weights" = rs_wt_col) %>%
-            gather()
+# Function to plot a histogram of weights and rescaled weights:
+hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin_width=NULL) {
 
-hist.plot <- qplot(data = wt.data,
+wt_data <- data[,c(wt_col, rs_wt_col)] %>% # select only the weights and rescaled weights
+            rename("Weights" = wt_col, "Rescaled weights" = rs_wt_col) %>% # rename so for plots
+            gather() # weights and rescaled weights in one column for plotting
+
+hist_plot <- qplot(data = wt_data,
                     value,
-                    geom="histogram",
+                    geom = "histogram",
                     xlab = "Histograms of weights and rescaled weights",
-                    binwidth=0.05) +
-              facet_wrap(~key,  ncol=1) +
+                    binwidth = bin_width
+                   ) +
+              facet_wrap(~key,  ncol=1) + # gives the two plots (one on top of the other)
               theme_bw()+
               theme(axis.title = element_text(size = 16),
                     axis.text = element_text(size = 16))+
               ylab("Frequency")
 
-return(hist.plot)
+return(hist_plot)
 }
 
 histogram <- hist_wts(data_for_diagnostics)
 histogram
 
-
-# Weight profiles
-
-profile_wts <- function(data, wt_col="wt", vars){
-             profile_data <-  data[, c(wt_col, vars)] %>%
-             distinct()
-             return(profile_data)
-              }
-
-profile_wts(data_for_diagnostics, vars = est.weights$matching_vars)
+histogram_bw1 <- hist_wts(data_for_diagnostics, bin_width=1)
+histogram_bw1
 
 
-# all weights - psuedo code
-all_diagnostics <- function(est.weights, arm="A"){ # object from estimate_weights
-  x <- est.weights$analysis_data %>% filter(ARM==arm)
-  vars <- est.weights$matching_vars
-  output <- list("ESS"=estimate.ess(x),
-                 "summarize.wts"=summarize.wts(x)
-                # "hist_wts"=hist_wts(data),"profile_wts"=profile_wts(data, vars)
+
+#### All weight diagnostics
+
+##### FUNCTION NOT WORKING
+# Function to combine weight diagnostic functions above:
+all_wt_diagnostics <- function(data, # analysis data from estimate_weights
+                               #arm,
+                               vars,
+                               wt=wt){
+
+  #intervention_data <- data %>% filter(ARM==arm)
+
+  #ESS
+  ESS <- estimate_ess(data)
+
+  #Summary
+  summ_wts <- summarize_wts(data)
+
+  #Weight profiles
+  #profile <- profile_wts(data, vars)
+
+  output <- list("ESS" = ESS,
+                 "Summary_of_weights" = summ_wts#,
+                 #"Histogram_of_weights" = hist_wts(intervention_data),
+                 # "Weight_profiles" = profile
                  )
   return(output)
 }
 
-all_diagnostics(est.weights, arm="A")
-all_diagnostics(data_for_diagnostics, vars = est.weights$matching_vars) #!!!!!!
 
-#### Bootstrapping --------------------------------------------------------------------------
+all_wt_diagnostics(data_for_diagnostics, vars = est_weights$matching_vars)
+
+# all_wt_diagnostics(data = est.weights$analysis_data,
+#                    arm = "A",
+#                    vars = est.weights$matching_vars)
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#### Bootstrapping ------------------------------------------------
+
+boostrap_OR <- function(intervention_data, i,  cent_vars, comparator_data){
+
+  # Samples the data
+  bootstrap_data <- intervention_data[i,]
+
+  # Estimates weights
+  print(opt1 <- optim(par = rep(0,dim(bootstrap_data[, cent_vars])[2]),
+                      fn = objfn,
+                      gr = gradfn,
+                      X = as.matrix(bootstrap_data[, cent_vars]),
+                      method = "BFGS"))
+
+  a1 <- opt1$par
+
+  weights <- as.vector(exp(as.matrix(bootstrap_data[, cent_vars]) %*% a1))
+
+  bootstrap_dat_wt <- cbind(bootstrap_data, weights)
+
+  #Combines intervention dataset with comparator.data
+  analysis_data <- bootstrap_dat_wt %>%
+                   rbind.fill(comparator_data)
+
+  # binary data
+  prop_A<-sum(bootstrap.dat.wt$weights*bootstrap.dat.wt[,resp])/sum(bootstrap.dat.wt$weights)
+  prop_B<-sum(comparator.data[,resp])/nrow(comparator.data)
+  logistic.regr <- glm(Binary_event~trt, family=binomial(link="logit"), data = analysis.data, weights = weights)
+  OR <- exp(as.numeric(coef(logistic.regr)["trtB"]))
+  log_OR <- as.numeric(coef(logistic.regr)["trtB"])
+
+  c("OR" = OR, "Log_OR" = log_OR, "prop_A" = prop_A, "prop_B" = prop_B)
+}
 
 # Bootstrap function
 
@@ -269,30 +392,6 @@ boot.ci(boot.out = bootstraps, index=4, type=c("norm"))
 # error - need to investigate
 boot.ci(boot.out = bootstraps,index=3, type=c("bca"))
 
-
-
-# End of bootstrapping ---------------------------------------------------------------------------------------------------------------
-
-
-
-
-
-# CI for weighted fedratinib
-hist(fed.TSS.Bootstrap,main = "",xlab = "Boostrapped Percentage")
-abline(v= quantile( fed.TSS.Bootstrap,probs = c(0.025,0.5,0.975)), lty=2)
-quantile(fed.TSS.Bootstrap, probs = c(0.025,0.5,0.975))
-
-reweighted.TSS.percentage.LCI <- data.frame(LCI = quantile(fed.TSS.Bootstrap, probs = c(0.025)), row.names=NULL)
-reweighted.TSS.percentage.UCI <- data.frame(UCI = quantile(fed.TSS.Bootstrap, probs = c(0.975)), row.names=NULL)
-
-
-# CI for RD
-hist(RD.TSS.Bootstrap, main = "",xlab = "Boostrapped Percentage")
-abline(v= quantile(RD.TSS.Bootstrap,probs = c(0.025,0.5,0.975)), lty=2)
-quantile(RD.TSS.Bootstrap, probs = c(0.025,0.5,0.975))
-
-LCI.TSS.BS <- data.frame(LCI = quantile(RD.TSS.Bootstrap, probs = c(0.025)), row.names=NULL)
-UCI.TSS.BS <- data.frame(UCI = quantile(RD.TSS.Bootstrap, probs = c(0.975)), row.names=NULL)
 
 ###############################
 # JG attempt - this bootstraps both comparator and int data
