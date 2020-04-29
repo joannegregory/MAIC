@@ -2,14 +2,9 @@
 % Please edit documentation in R/weights.R
 \name{profile_wts}
 \alias{profile_wts}
-\title{Produce a data frame of the weights assigned to alternative patient profiles}
+\title{Produce a data frame of the weights assigned to alternative patient profiles HELP PAGE NEEDS UPDATING}
 \usage{
-profile_wts(
-  intervention_wts,
-  wt_col = "WT",
-  rs_wt_col = "WT_RS",
-  matching_vars
-)
+profile_wts(data, wt = wt, wt_rs = wt_rs, vars)
 }
 \arguments{
 \item{intervention_wts}{A data frame containing individual patient data from

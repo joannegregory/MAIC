@@ -2,15 +2,11 @@
 % Please edit documentation in R/weights.R
 \name{hist_wts}
 \alias{hist_wts}
-\title{Produce histograms of weights and rescaled weights}
+\title{Produce histograms of weights and rescaled weights HELP PAGE NEEDS UPDATING}
 \usage{
-hist_wts(intervention_wts, wt_col = "WT", rs_wt_col = "WT_RS")
+hist_wts(data, wt_col = "wt", rs_wt_col = "wt_rs", bin_width = NULL)
 }
 \arguments{
-\item{intervention_wts}{A data frame containing individual patient data from
-the intervention study, including a column containing the weights (derived
-using estimate_weights).}
-
 \item{wt_col}{The name of the weights column in the data frame containing the
 intervention individual patient data and the MAIC propensity weights. The
 default is WT.}
@@ -18,6 +14,10 @@ default is WT.}
 \item{rs_wt_col}{The name of the rescaled weights column in the data frame
 containing the intervention individual patient data and the MAIC propensity
 weights. The default is WT_RS.}
+
+\item{intervention_wts}{A data frame containing individual patient data from
+the intervention study, including a column containing the weights (derived
+using estimate_weights).}
 }
 \value{
 A histogram plot of the weights and rescaled weights.

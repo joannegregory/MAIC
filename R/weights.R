@@ -35,28 +35,51 @@ gradfn <- function(a1, X){
 #'   THE DECISION SUPPORT UNIT, December 2016
 #'
 #' @export
-estimate_weights <- function(intervention_data, matching_vars, ...){
+estimate_weights <- function(intervention_data, cent_vars, comparator_data){
 
-  opt1 <- optim(par = rep(0,dim(intervention_data[, matching_vars])[2]),
+  # Optimise Q(b) using Newton-Raphson techniques
+  print(opt1 <- optim(par = rep(0,dim(intervention_data[,cent_vars])[2]),
                       fn = objfn,
                       gr = gradfn,
-                      X = as.matrix(intervention_data[, matching_vars]),
-                      method = "BFGS")
+                      X = as.matrix(intervention_data[,cent_vars]),
+                      method = "BFGS"))
 
   a1 <- opt1$par
 
 
   # Calculation of weights.
-  WT <- as.vector(exp(as.matrix(intervention_data[, matching_vars]) %*% a1))
+  wt <- as.vector(exp(as.matrix(intervention_data[,cent_vars]) %*% a1))
 
   # rescaled weights
-  WT_RS <- (WT / sum(WT)) * dim(intervention_data)[1]
+  wt_rs <- (wt / sum(wt)) * dim(intervention_data)[1]
 
-  # combine intervention_data with weights
-  intervention_wts <- cbind(intervention_data, WT, WT_RS)
-  output <- list(intervention_wts_data=intervention_wts, matching_vars=matching_vars)
+
+
+  # combine data with weights
+  data_with_wts <- cbind(intervention_data, wt, wt_rs) %>%
+    mutate(ARM="Intervention")
+
+  # assign weight=1 to comparator data
+  comparator_data_wts <- comparator_data %>% mutate(wt=1, wt_rs=1, ARM="Comparator")
+
+  # Join comparator data with the intervention data
+  all_data <- rbind.fill(data_with_wts, comparator_data_wts)
+  all_data$ARM <- relevel(as.factor(all_data$ARM), ref="Comparator")
+
+
+
+  # Outputs are:
+  #       - the analysis data (intervention PLD, weights and comparator pseudo PLD)
+  #       - A charcacter vector with the name of the centered matching variables
+  #       - A charcacter vector with the name of the matching variables
+  output <- list(analysis_data = all_data,
+                 centered_matching_vars = cent_vars,
+                 intervention_wt_data=data_with_wts,
+                 comparator_wt_data = comparator_data_wts
+  )
 
   return(output)
+
 }
 
 # Functions for summarizing the weights ---------------------------------
@@ -80,12 +103,11 @@ estimate_weights <- function(intervention_data, matching_vars, ...){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-estimate_ess <- function(intervention_wts, wt_col=WT){
-
-  ess <- (sum(intervention_wts$wt_col)^2/sum(intervention_wts$wt_col^2))
-
+estimate_ess <- function(data, wt=wt){
+  ess <- sum(data$wt)^2/sum(data$wt^2)
   return(ess)
 }
+
 
 #' Summarize the weight values HELP PAGE NEEDS UPDATING
 #'
@@ -105,17 +127,16 @@ estimate_ess <- function(intervention_wts, wt_col=WT){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-summarize_wts <- function(intervention_wts, wt_col=WT){
-    summary <- intervention_wts %>%
-                summarise(
-                          min = min(intervention_wts$wt),
-                          max = max(intervention_wts$wt),
-                          median = median(intervention_wts$wt),
-                          mean = mean(intervention_wts$wt),
-                          sd = sd(intervention_wts$wt)
-                          )
-    return(summary)
-  }
+summarize_wts <- function(data, wt="wt"){
+  summary <- data.frame(
+    min = min(data[,wt]),
+    max = max(data[,wt]),
+    median = median(data[,wt]),
+    mean = mean(data[,wt]),
+    sd = sd(data[,wt])
+  )
+  return(summary)
+}
 
 
 #' Produce histograms of weights and rescaled weights HELP PAGE NEEDS UPDATING
@@ -136,18 +157,19 @@ summarize_wts <- function(intervention_wts, wt_col=WT){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-hist_wts <- function(intervention_wts, wt_col="WT", rs_wt_col="WT_RS"){
+hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin_width=NULL) {
 
-  wt_data <- data[,c(wt_col, rs_wt_col)] %>% # select the weights and rescaled weights only
-    rename("Weights" = wt_col, "Rescaled weights" = rs_wt_col) %>% # rename the weight columns for histogram output
-    gather() # change the data so there is one column of weights and another to define whether the weight is weight/rescaled weight
+  wt_data <- data[,c(wt_col, rs_wt_col)] %>% # select only the weights and rescaled weights
+    rename("Weights" = wt_col, "Rescaled weights" = rs_wt_col) %>% # rename so for plots
+    gather() # weights and rescaled weights in one column for plotting
 
   hist_plot <- qplot(data = wt_data,
                      value,
-                     geom="histogram",
+                     geom = "histogram",
                      xlab = "Histograms of weights and rescaled weights",
-                     binwidth=0.05) +
-    facet_wrap(~key,  ncol=1) + # creates two hisotgrams (one for weights and one for rescaled weights)
+                     binwidth = bin_width
+  ) +
+    facet_wrap(~key,  ncol=1) + # gives the two plots (one on top of the other)
     theme_bw()+
     theme(axis.title = element_text(size = 16),
           axis.text = element_text(size = 16))+
@@ -155,6 +177,7 @@ hist_wts <- function(intervention_wts, wt_col="WT", rs_wt_col="WT_RS"){
 
   return(hist_plot)
 }
+
 
 #' Produce a data frame of the weights assigned to alternative patient profiles HELP PAGE NEEDS UPDATING
 #'
@@ -185,11 +208,15 @@ hist_wts <- function(intervention_wts, wt_col="WT", rs_wt_col="WT_RS"){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-profile_wts <- function(intervention_wts, wt_col="WT", rs_wt_col="WT_RS", matching_vars){
+profile_wts <- function(data, wt=wt, wt_rs=wt_rs, vars){
+  profile_data <-  data %>%
+    select(vars, wt, wt_rs)
 
-  profile_data <- intervention_wts[, c(wt_col, rs_wt_col, matching_vars)] %>%
-                  distinct()
-  return(profile_data)
+  profile_wts <- profile_data %>%
+    distinct() %>%
+    arrange(wt)
+
+  return(profile_wts)
 }
 
 #' Weight diagnostics HELP PAGE NEEDS UPDATING
@@ -219,16 +246,32 @@ profile_wts <- function(intervention_wts, wt_col="WT", rs_wt_col="WT_RS", matchi
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{estimate_ess}}, \code{\link{summarize_wts}}, \code{\link{profile_wts}}
 #' @export
-wt_diagnostics <- function(intervention_wts, wt_col=WT, rs_wt_col=WT_RS, matching_vars){
+all_wt_diagnostics <- function(data, # analysis data from estimate_weights
+                               #arm,
+                               matching_vars,
+                               wt="wt",
+                               ...){
 
-  # Calls functions: estimate_ess, summarize_wts and profile_wts
+  # ESS
+  ESS <- estimate_ess(data)
 
-  # Run each function
+  # Summary
+  summ_wts <- summarize_wts(data)
 
-  # Return a list of data frames containing the outputs produced by estimate_ess, summarize_wts and profile_wt
+  # Weight profiles
+  profile <- profile_wts(data, vars=matching_vars)
 
+  # Histogram of weights
+  hist_plot <- hist_wts(data, ...)
 
-  }
+  output <- list("ESS" = ESS,
+                 "Summary_of_weights" = summ_wts,
+                 "Histogram_of_weights" = hist_plot,
+                 "Weight_profiles" = profile
+  )
+  return(output)
+}
+
 
 
 

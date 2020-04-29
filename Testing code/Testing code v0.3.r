@@ -14,6 +14,7 @@ library(tidyr)
 library(boot)
 library(survminer)
 library(survival)
+library(MAIC)
 
 
 
@@ -68,11 +69,11 @@ target_pop
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Center baseline characteristics, estimate weights, rescaled weights and join data -----------------
+# Center baseline characteristics -----------------
 
 #### center baseline characteristics
 # (subtract the aggregate comparator data from the corresponding column of intervention PLD)
-names(intervention_data)
+names(intervention_input)
 intervention_data <- intervention_input %>%
                           mutate(Age_centered = AGE - target_pop$age.mean,
                                  # it is necessary to balance on both mean and standard deviation for continous variables:
@@ -95,70 +96,8 @@ match_cov <- c("AGE",
                "SMOKE",
                "ECOG0")
 
-
-#### optimisation procedure and calculation of weights
-
-# This is a fuction for Q(b)
-objfn <- function(a1, X){
-  sum(exp(X %*% a1))
-}
-
-
-# Gradient function => Derivative of Q(b).
-gradfn <- function(a1, X){
-  colSums(sweep(X, 1, exp(X %*% a1), "*"))
-}
-
-
-# Function to estimate weights, create analysis dataset and output a
-# character vector of the variable names
-estimate_weights <- function(intervention_data, cent_vars, comparator_data){
-
-  # Optimise Q(b) using Newton-Raphson techniques
-  print(opt1 <- optim(par = rep(0,dim(intervention_data[,cent_vars])[2]),
-                      fn = objfn,
-                      gr = gradfn,
-                      X = as.matrix(intervention_data[,cent_vars]),
-                      method = "BFGS"))
-
-  a1 <- opt1$par
-
-
-  # Calculation of weights.
-  wt <- as.vector(exp(as.matrix(intervention_data[,cent_vars]) %*% a1))
-
-  # rescaled weights
-  wt_rs <- (wt / sum(wt)) * dim(intervention_data)[1]
-
-
-
-  # combine data with weights
-  data_with_wts <- cbind(intervention_data, wt, wt_rs) %>%
-    mutate(ARM="Intervention")
-
-  # assign weight=1 to comparator data
-  comparator_data_wts <- comparator_data %>% mutate(wt=1, wt_rs=1, ARM="Comparator")
-
-  # Join comparator data with the intervention data
-  all_data <- rbind.fill(data_with_wts, comparator_data_wts)
-  all_data$ARM <- relevel(as.factor(all_data$ARM), ref="Comparator")
-
-
-
-  # Outputs are:
-  #       - the analysis data (intervention PLD, weights and comparator pseudo PLD)
-  #       - A charcacter vector with the name of the centered matching variables
-  #       - A charcacter vector with the name of the matching variables
-  output <- list(analysis_data = all_data,
-                 centered_matching_vars = cent_vars,
-                 intervention_wt_data=data_with_wts,
-                 comparator_wt_data = comparator_data_wts
-                 )
-
-  return(output)
-
-}
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#  estimate weights, rescaled weights  -----------------
 
 est_weights <- estimate_weights(intervention_data=intervention_data,
                                 cent_vars = cent_match_cov,
@@ -176,30 +115,11 @@ est_weights$centered_matching_vars
 
 #### ESS
 
-# Function to caclulate ESS:
-estimate_ess <- function(data, wt=wt){
-  ess <- sum(data$wt)^2/sum(data$wt^2)
-  return(ess)
-}
-
 ESS <- estimate_ess(data=est_weights$intervention_wt_data)
 ESS
 
 
 #### Weights summary
-
-# Function to caclulate min, max, median, mean and sd of wts:
-summarize_wts <- function(data, wt="wt"){
-  summary <- data.frame(
-      min = min(data[,wt]),
-      max = max(data[,wt]),
-      median = median(data[,wt]),
-      mean = mean(data[,wt]),
-      sd = sd(data[,wt])
-    )
-  return(summary)
-}
-
 weight_summ <- summarize_wts(data=est_weights$intervention_wt_data)
 weight_summ
 
@@ -209,17 +129,6 @@ weight_rs_summ
 
 ##### Weight profiles
 
-profile_wts <- function(data, wt=wt, wt_rs=wt_rs, vars){
-  profile_data <-  data %>%
-                  select(vars, wt, wt_rs)
-
-  profile_wts <- profile_data %>%
-                 distinct() %>%
-                 arrange(wt)
-
-  return(profile_wts)
-}
-
 wts_profile <- profile_wts(data=est_weights$intervention_wt_data, vars = match_cov)
 
 # worth adding something like this?
@@ -228,27 +137,6 @@ boxplot(wts_profile$SEX , wts_profile$wt)
 
 #### Histograms
 
-# Function to plot a histogram of weights and rescaled weights:
-hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin_width=NULL) {
-
-wt_data <- data[,c(wt_col, rs_wt_col)] %>% # select only the weights and rescaled weights
-            rename("Weights" = wt_col, "Rescaled weights" = rs_wt_col) %>% # rename so for plots
-            gather() # weights and rescaled weights in one column for plotting
-
-hist_plot <- qplot(data = wt_data,
-                    value,
-                    geom = "histogram",
-                    xlab = "Histograms of weights and rescaled weights",
-                    binwidth = bin_width
-                   ) +
-              facet_wrap(~key,  ncol=1) + # gives the two plots (one on top of the other)
-              theme_bw()+
-              theme(axis.title = element_text(size = 16),
-                    axis.text = element_text(size = 16))+
-              ylab("Frequency")
-
-return(hist_plot)
-}
 
 histogram <- hist_wts(data=est_weights$intervention_wt_data)
 histogram
@@ -261,31 +149,6 @@ histogram_bw
 #### All weight diagnostics
 
 # Function to combine weight diagnostic functions above:
-all_wt_diagnostics <- function(data, # analysis data from estimate_weights
-                               #arm,
-                               matching_vars,
-                               wt="wt",
-                               ...){
-
-    # ESS
-  ESS <- estimate_ess(data)
-
-  # Summary
-  summ_wts <- summarize_wts(data)
-
-  # Weight profiles
-  profile <- profile_wts(data, vars=matching_vars)
-
-  # Histogram of weights
-  hist_plot <- hist_wts(data, ...)
-
-  output <- list("ESS" = ESS,
-                 "Summary_of_weights" = summ_wts,
-                 "Histogram_of_weights" = hist_plot,
-                  "Weight_profiles" = profile
-                 )
-  return(output)
-}
 
 
 diagnostics <- all_wt_diagnostics(data=est_weights$intervention_wt_data, matching_vars = match_cov, bin_width=0.1)
@@ -303,36 +166,8 @@ diagnostics$Histogram_of_weights
 #### Bootstrapping ------------------------------------------------
 # OR bootstraps-------------------------------------------------------------------------
 
-boostrap_OR <- function(intervention_data, i,  cent_vars, comparator_data, binary_var){
-
-  # Samples the data
-  bootstrap_data <- intervention_data[i,]
-
-  # Estimates weights
-  perform_wt <- estimate_weights(intervention_data=bootstrap_data, cent_vars,  comparator_data)
-
-
-  # binary data stats - note we can probably get rid of some of these, just to show that the OR works using a logitsic regression or manually shall we also add RR?
-  prop_A<-weighted.mean(perform_wt$intervention_wt_data[,binary_var],perform_wt$intervention_wt_data$wt)
-  prop_B<-mean(perform_wt$comparator_wt_data[,binary_var])
-  logistic.regr_RR <- suppressWarnings(glm(Binary_event~ARM, family=poisson(link="log"), data = perform_wt$analysis_data, weight = wt))
-  RR <- exp(as.numeric(coef(logistic.regr_RR)[2]))
-  RR_test <- prop_A/prop_B
-
-  odds_A <- weighted.mean(perform_wt$intervention_wt_data[,binary_var],perform_wt$intervention_wt_data$wt)/weighted.mean(1-perform_wt$intervention_wt_data[,binary_var],perform_wt$intervention_wt_data$wt)
-  odds_B<-mean(perform_wt$comparator_wt_data[,binary_var])/mean(1-perform_wt$comparator_wt_data[,binary_var])
-  logistic.regr <- suppressWarnings(glm(Binary_event~ARM, family=binomial(link="logit"), data = perform_wt$analysis_data, weight = wt))
-  OR <- exp(as.numeric(coef(logistic.regr)[2]))
-  OR_test <- odds_A/odds_B
-
-
-  c("OR" = OR,  "RR" = RR, "odds_A"=odds_A, "odds_B"=odds_B, "prop_A" = prop_A, "prop_B" = prop_B, "OR_test"=OR_test, "RR_test" = RR_test)
-}
-
-
-
 # for Richard - to show how the function works
-#test <- boostrap_OR(intervention_data=intervention_data, i=c(1:nrow(intervention_data)), cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
+test <- boostrap_OR(intervention_data=intervention_data, i=c(1:nrow(intervention_data)), cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
 
 OR_bootstraps <- boot(intervention_data, boostrap_OR, R=1000, cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
 
@@ -370,26 +205,6 @@ boot.ci.OR.BCA$bca[4:5]
 # HR bootstraps -----------------------------------------------------------
 
 
-boostrap_HR <- function(intervention_data, i,  cent_vars, comparator_data, binary_var){
-
-    # Samples the data
-    bootstrap_data <- intervention_data[i,]
-
-    # Estimates weights
-    perform_wt <- estimate_weights(intervention_data=bootstrap_data, cent_vars,  comparator_data)
-
-    # survival data stats
-    fit.A <- surv_fit(Surv(Time, Event) ~ 1, data = perform_wt$intervention_wt_data, weights=perform_wt$intervention_wt_data$wt)
-    median_A<-surv_median(fit.A)$median
-    #
-    fit.B <- surv_fit(Surv(Time, Event) ~ 1, data = perform_wt$comparator_wt_data)
-    median_B<-surv_median(fit.B)$median
-
-    cox_model <- coxph(Surv(Time, Event==1) ~ ARM, data = perform_wt$analysis_data, weights = wt)
-    HR <- exp(cox_model$coefficients)
-
-    c("HR"=HR, "median_A"=median_A, "median_B"=median_B)
-    }
 
   # for Richard - to show how the function works
   test_HR <- boostrap_HR(intervention_data=intervention_data, i=c(1:nrow(intervention_data)), cent_vars = cent_match_cov, comparator_data=comparator_input)
@@ -506,3 +321,4 @@ cox.summ
 logistic.regr_OR <- suppressWarnings(glm(Binary_event~ARM, family=binomial(link="logit"), data = est_weights$analysis_data, weight = wt))
 exp(as.numeric(coef(logistic.regr_OR)[2]))
 summary(logistic.regr_OR)
+

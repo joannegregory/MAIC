@@ -2,9 +2,9 @@
 % Please edit documentation in R/weights.R
 \name{estimate_ess}
 \alias{estimate_ess}
-\title{Estimate effective sample size}
+\title{Estimate effective sample size HELP PAGE NEEDS UPDATING}
 \usage{
-estimate_ess(intervention_wts, wt_col = WT)
+estimate_ess(data, wt = wt)
 }
 \arguments{
 \item{intervention_wts}{A data frame containing individual patient data from

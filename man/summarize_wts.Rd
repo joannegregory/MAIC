@@ -2,9 +2,9 @@
 % Please edit documentation in R/weights.R
 \name{summarize_wts}
 \alias{summarize_wts}
-\title{Summarize the weight values}
+\title{Summarize the weight values HELP PAGE NEEDS UPDATING}
 \usage{
-summarize_wts(intervention_wts, wt_col = WT)
+summarize_wts(data, wt = "wt")
 }
 \arguments{
 \item{intervention_wts}{A data frame containing individual patient data from
