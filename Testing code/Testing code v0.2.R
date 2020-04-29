@@ -13,7 +13,7 @@ library(ggplot2)
 library(tidyr)
 library(boot)
 library(survminer)
-library(survminer)
+library(survival)
 
 
 
@@ -68,10 +68,11 @@ target_pop
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Estimate weights, rescaled weight and join data -----------------
+# Center baseline characteristics, estimate weights, rescaled weights and join data -----------------
 
 #### center baseline characteristics
 # (subtract the aggregate comparator data from the corresponding column of intervention PLD)
+names(intervention_data)
 intervention_data <- intervention_input %>%
                           mutate(Age_centered = AGE - target_pop$age.mean,
                                  # it is necessary to balance on both mean and standard deviation for continous variables:
@@ -80,19 +81,19 @@ intervention_data <- intervention_input %>%
                                  Smoke_centered = SMOKE - target_pop$prop.smoke,
                                  ECOG0_centered = ECOG0 - target_pop$prop.ecog0)
 head(intervention_data)
-names(intervention_data)
 
-# cent_match_cov <- c("Age_centered",
-#                     "Age_squared.centered",
-#                     "Sex_centered",
-#                     "Smoke_centered",
-#                     "ECOG0_centered")
+# Set matching covariates
+cent_match_cov <- c("Age_centered",
+                    "Age_squared_centered",
+                    "Sex_centered",
+                    "Smoke_centered",
+                    "ECOG0_centered")
 
-cent_match_cov <- names(intervention_data)[13:15]
-cent_match_cov
 
-match_cov <- names(intervention_data)[5:7]
-match_cov
+match_cov <- c("AGE",
+               "SEX",
+               "SMOKE",
+               "ECOG0")
 
 
 #### optimisation procedure and calculation of weights
@@ -111,7 +112,7 @@ gradfn <- function(a1, X){
 
 # Function to estimate weights, create analysis dataset and output a
 # character vector of the variable names
-estimate_weights <- function(intervention_data, cent_vars, vars, comparator_data){
+estimate_weights <- function(intervention_data, cent_vars, comparator_data){
 
   # Optimise Q(b) using Newton-Raphson techniques
   print(opt1 <- optim(par = rep(0,dim(intervention_data[,cent_vars])[2]),
@@ -129,14 +130,20 @@ estimate_weights <- function(intervention_data, cent_vars, vars, comparator_data
   # rescaled weights
   wt_rs <- (wt / sum(wt)) * dim(intervention_data)[1]
 
+
+
   # combine data with weights
-  data_with_wts <- cbind(intervention_data, wt, wt_rs)
+  data_with_wts <- cbind(intervention_data, wt, wt_rs) %>%
+    mutate(ARM="Intervention")
 
   # assign weight=1 to comparator data
-  comparator_data_wts <- comparator_data %>% mutate(wt=1, wt_rs=1)
+  comparator_data_wts <- comparator_data %>% mutate(wt=1, wt_rs=1, ARM="Comparator")
 
   # Join comparator data with the intervention data
   all_data <- rbind.fill(data_with_wts, comparator_data_wts)
+  all_data$ARM <- relevel(as.factor(all_data$ARM), ref="Comparator")
+
+
 
   # Outputs are:
   #       - the analysis data (intervention PLD, weights and comparator pseudo PLD)
@@ -144,7 +151,8 @@ estimate_weights <- function(intervention_data, cent_vars, vars, comparator_data
   #       - A charcacter vector with the name of the matching variables
   output <- list(analysis_data = all_data,
                  centered_matching_vars = cent_vars,
-                 matching_vars = vars
+                 intervention_wt_data=data_with_wts,
+                 comparator_wt_data = comparator_data_wts
                  )
 
   return(output)
@@ -154,22 +162,17 @@ estimate_weights <- function(intervention_data, cent_vars, vars, comparator_data
 
 est_weights <- estimate_weights(intervention_data=intervention_data,
                                 cent_vars = cent_match_cov,
-                                vars = match_cov,
                                 comparator_data=comparator_input)
 
 head(est_weights$analysis_data)
-est_weights$matching_vars
+head(est_weights$intervention_wt_data)
+head(est_weights$comparator_wt_data)
 est_weights$centered_matching_vars
 
-weighted.mean(intervention_wt_data$Binary_event, intervention_wt_data$wt_rs)
-weighted.mean(intervention_wt_data$Binary_event, intervention_wt_data$wt)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Weight diagnostics ----------------------------------------------
 
-# Weight diagnostics with the intervention data only:
-intervention_wt_data <- est_weights$analysis_data %>%
-                        filter(ARM=="A")
 
 #### ESS
 
@@ -179,7 +182,7 @@ estimate_ess <- function(data, wt=wt){
   return(ess)
 }
 
-ESS <- estimate_ess(data=intervention_wt_data)
+ESS <- estimate_ess(data=est_weights$intervention_wt_data)
 ESS
 
 
@@ -187,8 +190,7 @@ ESS
 
 # Function to caclulate min, max, median, mean and sd of wts:
 summarize_wts <- function(data, wt="wt"){
-  summary <- data %>%
-    summarise(
+  summary <- data.frame(
       min = min(data[,wt]),
       max = max(data[,wt]),
       median = median(data[,wt]),
@@ -198,10 +200,10 @@ summarize_wts <- function(data, wt="wt"){
   return(summary)
 }
 
-weight_summ <- summarize_wts(data=intervention_wt_data)
+weight_summ <- summarize_wts(data=est_weights$intervention_wt_data)
 weight_summ
 
-weight_rs_summ <- summarize_wts(data=intervention_wt_data, wt=wt_rs)
+weight_rs_summ <- summarize_wts(data=est_weights$intervention_wt_data, wt="wt_rs")
 weight_rs_summ
 
 
@@ -218,9 +220,9 @@ profile_wts <- function(data, wt=wt, wt_rs=wt_rs, vars){
   return(profile_wts)
 }
 
-wts_profile <- profile_wts(data=intervention_wt_data, vars = est_weights$matching_vars)
+wts_profile <- profile_wts(data=est_weights$intervention_wt_data, vars = match_cov)
 
-
+# worth adding something like this?
 plot(wts_profile$AGE, wts_profile$wt)
 boxplot(wts_profile$SEX , wts_profile$wt)
 
@@ -248,25 +250,22 @@ hist_plot <- qplot(data = wt_data,
 return(hist_plot)
 }
 
-histogram <- hist_wts(data=intervention_wt_data)
+histogram <- hist_wts(data=est_weights$intervention_wt_data)
 histogram
 
-histogram_bw1 <- hist_wts(data=intervention_wt_data, bin_width=1)
-histogram_bw1
+histogram_bw <- hist_wts(data=est_weights$intervention_wt_data, bin_width=0.1)
+histogram_bw
 
 
 
 #### All weight diagnostics
 
-##### FUNCTION NOT WORKING
 # Function to combine weight diagnostic functions above:
 all_wt_diagnostics <- function(data, # analysis data from estimate_weights
                                #arm,
                                matching_vars,
-                               wt=wt,
+                               wt="wt",
                                ...){
-
-  # intervention_data <- data %>% filter(ARM==arm)
 
     # ESS
   ESS <- estimate_ess(data)
@@ -289,16 +288,12 @@ all_wt_diagnostics <- function(data, # analysis data from estimate_weights
 }
 
 
-diagnostics <- all_wt_diagnostics(data=intervention_wt_data, matching_vars = est_weights$matching_vars, bin_width=0.1)
+diagnostics <- all_wt_diagnostics(data=est_weights$intervention_wt_data, matching_vars = match_cov, bin_width=0.1)
 
 diagnostics$ESS
 diagnostics$Summary_of_weights
 diagnostics$Weight_profiles
 diagnostics$Histogram_of_weights
-
-# all_wt_diagnostics(data = est.weights$analysis_data,
-#                    arm = "A",
-#                    vars = est.weights$matching_vars)
 
 
 
@@ -306,122 +301,130 @@ diagnostics$Histogram_of_weights
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #### Bootstrapping ------------------------------------------------
+# OR bootstraps-------------------------------------------------------------------------
 
 boostrap_OR <- function(intervention_data, i,  cent_vars, comparator_data, binary_var){
 
   # Samples the data
-  #i=c(1:nrow(intervention_data))
   bootstrap_data <- intervention_data[i,]
 
   # Estimates weights
-  print(opt1 <- optim(par = rep(0,dim(bootstrap_data[, cent_vars])[2]),
-                      fn = objfn,
-                      gr = gradfn,
-                      X = as.matrix(bootstrap_data[, cent_vars]),
-                      method = "BFGS"))
+  perform_wt <- estimate_weights(intervention_data=bootstrap_data, cent_vars,  comparator_data)
 
-  a1 <- opt1$par
 
-  weights <- as.vector(exp(as.matrix(bootstrap_data[, cent_vars]) %*% a1))
+  # binary data stats - note we can probably get rid of some of these, just to show that the OR works using a logitsic regression or manually shall we also add RR?
+  prop_A<-weighted.mean(perform_wt$intervention_wt_data[,binary_var],perform_wt$intervention_wt_data$wt)
+  prop_B<-mean(perform_wt$comparator_wt_data[,binary_var])
+  logistic.regr_RR <- suppressWarnings(glm(Binary_event~ARM, family=poisson(link="log"), data = perform_wt$analysis_data, weight = wt))
+  RR <- exp(as.numeric(coef(logistic.regr_RR)[2]))
+  RR_test <- prop_A/prop_B
 
-  bootstrap_dat_wt <- cbind(bootstrap_data, weights)
-
-  #Combines intervention dataset with comparator_data
-  analysis_data <- bootstrap_dat_wt %>%
-                   rbind.fill(comparator_data %>% mutate(ARM="Comparator",weights=1))
-  #sort out reference
-
-  # binary data
-  prop_A<-weighted.mean(bootstrap_dat_wt[,binary_var],bootstrap_dat_wt$weights)
-  prop_B<-mean(comparator_data[,binary_var])
-  odds_A <- weighted.mean(bootstrap_dat_wt[,binary_var],bootstrap_dat_wt$weights)/weighted.mean(1-bootstrap_dat_wt[,binary_var],bootstrap_dat_wt$weights)
-  odds_B<-mean(comparator_data[,binary_var])/mean(1-comparator_data[,binary_var])
-  logistic.regr <- suppressWarnings(glm(Binary_event~ARM, family=binomial(link="logit"), data = analysis_data, weights = weights))
+  odds_A <- weighted.mean(perform_wt$intervention_wt_data[,binary_var],perform_wt$intervention_wt_data$wt)/weighted.mean(1-perform_wt$intervention_wt_data[,binary_var],perform_wt$intervention_wt_data$wt)
+  odds_B<-mean(perform_wt$comparator_wt_data[,binary_var])/mean(1-perform_wt$comparator_wt_data[,binary_var])
+  logistic.regr <- suppressWarnings(glm(Binary_event~ARM, family=binomial(link="logit"), data = perform_wt$analysis_data, weight = wt))
   OR <- exp(as.numeric(coef(logistic.regr)[2]))
-  OR1 <- odds_A/odds_B
+  OR_test <- odds_A/odds_B
 
-  log_OR <- as.numeric(coef(logistic.regr)[2])
-  # sort out refereces
 
-  c("OR" = OR, "Log_OR" = log_OR, "prop_A" = prop_A, "prop_B" = prop_B,"odds_A"=odds_A, "odds_B"=odds_B, "OR1"=OR1)
+  c("OR" = OR,  "RR" = RR, "odds_A"=odds_A, "odds_B"=odds_B, "prop_A" = prop_A, "prop_B" = prop_B, "OR_test"=OR_test, "RR_test" = RR_test)
 }
 
 
-OR_bootstraps <- boot(intervention_data, boostrap_OR, R=10, cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
 
+# for Richard - to show how the function works
+#test <- boostrap_OR(intervention_data=intervention_data, i=c(1:nrow(intervention_data)), cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
+
+OR_bootstraps <- boot(intervention_data, boostrap_OR, R=1000, cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
+
+# Bootstrap estimates
 boot_data <- as.data.frame(OR_bootstraps$t)
 colnames(boot_data) <- colnames(t(as.data.frame(OR_bootstraps$t0)))
-
 head(boot_data)
-names(boot_data)
-OR_bootstraps0
-summary(OR_bootstraps)
 
+# summerise bootstrap estimates
 hist(boot_data$OR, main = "",xlab = "Boostrapped OR")
 abline(v= quantile(boot_data$OR,probs = c(0.025,0.5,0.975)), lty=2)
 
-OR.LCI <- data.frame(LCI = quantile(boot_data$OR, probs = c(0.025)), row.names=NULL)
-OR.UCI <- data.frame(LCI = quantile(boot_data$OR, probs = c(0.975)), row.names=NULL)
-paste0(OR.LCI, OR.UCI)
-boot.ci(boot.out = bootstraps,  type=c("norm")) #takes thew first value
+OR.median <- quantile(boot_data$OR, probs = c(0.5))
 
-boot.ci(boot.out = bootstraps, index=1, type=c("norm")) # takes specific values
-boot.ci(boot.out = bootstraps, index=2, type=c("norm")) # takes specific values
-boot.ci(boot.out = bootstraps, index=3, type=c("norm")) # takes specific values
-boot.ci(boot.out = bootstraps, index=4, type=c("norm"))
-# error - need to investigate
-boot.ci(boot.out = bootstraps,index=3, type=c("bca"))
+OR.LCI <- quantile(boot_data$OR, probs = c(0.025))
+OR.UCI <- quantile(boot_data$OR, probs = c(0.975))
+paste0(OR.median, " (", OR.LCI, ",", OR.UCI, ")")
 
-# Bootstrap function
+# Normal CI
+boot.ci.OR <- boot.ci(boot.out = OR_bootstraps, index=1, type=c("norm")) # takes specific values
+boot.ci.RR <- boot.ci(boot.out = OR_bootstraps, index=2, type=c("norm")) # takes specific values
 
-boostrap.func <- function(intervention_data, i, vars, comparator_data, binary_var){
-  # Samples the data
-  bootstrap.data <- intervention_data[i,]
+# BCA CI
+boot.ci.OR.BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type=c("bca"))
+boot.ci.RR.BCA <- boot.ci(boot.out = OR_bootstraps, index=2, type=c("bca"))
 
-  # Performs weighing
-  print(opt1 <- optim(par = rep(0,dim(bootstrap.data[, vars])[2]),
-                      fn = objfn,
-                      gr = gradfn,
-                      X = as.matrix(bootstrap.data[, vars]),
-                      method = "BFGS"))
+# Bootstrap CI function
+boot.ci.OR$t0
+boot.ci.OR$normal[2:3]
 
-  a1 <- opt1$par
-
-  weights <- as.vector(exp(as.matrix(bootstrap.data[, vars]) %*% a1))
-
-  bootstrap_dat_wt <- cbind(bootstrap.data, weights)
-
-  #Combines intervention dataset with comparator_data
-  analysis_data <- bootstrap_dat_wt %>%
-    #select(ARM, Binary_event, weights) %>%
-    rbind.fill(comparator_data)
-
-  # binary data
-  prop_A<-weighted.mean(bootstrap_dat_wt[,binary_var],bootstrap_dat_wt$weights)
-  prop_B<-mean(comparator_data[,binary_var])
-  odds_A <- weighted.mean(bootstrap_dat_wt[,binary_var],bootstrap_dat_wt$weights)/weighted.mean(1-bootstrap_dat_wt[,binary_var],bootstrap_dat_wt$weights)
-  odds_B<-mean(comparator_data[,binary_var])/mean(1-comparator_data[,binary_var])
-  logistic.regr <- suppressWarnings(glm(Binary_event~ARM, family=binomial(link="logit"), data = analysis_data, weights = weights))
-  OR <- exp(as.numeric(coef(logistic.regr)["ARMComparator"]))
-  OR_test <- odds_A/odds_B
-
-  # survival data
-  fit.A <- surv_fit(Surv(Time, Event) ~ 1, data = bootstrap_dat_wt, weights=weights)
-  median_A<-surv_median(fit.A)$median
-  #
-  fit.B <- surv_fit(Surv(Time, Event) ~ 1, data = comparator_data)
-  median_B<-surv_median(fit.B)$median
-
-  cox_model <- coxph(Surv(Time, Event==1) ~ ARM, data = analysis_data, weights = weights)
-  HR <- exp(cox_model$coefficients)
-
-  c("OR"=OR, "prop_A"=prop_A, "prop_B"=prop_B,"HR"=HR, "median_A"=median_A, "median_B"=median_B)
-}
+boot.ci.OR.BCA$t0
+boot.ci.OR.BCA$bca[4:5]
 
 
+# HR bootstraps -----------------------------------------------------------
 
 
+boostrap_HR <- function(intervention_data, i,  cent_vars, comparator_data, binary_var){
 
+    # Samples the data
+    bootstrap_data <- intervention_data[i,]
+
+    # Estimates weights
+    perform_wt <- estimate_weights(intervention_data=bootstrap_data, cent_vars,  comparator_data)
+
+    # survival data stats
+    fit.A <- surv_fit(Surv(Time, Event) ~ 1, data = perform_wt$intervention_wt_data, weights=perform_wt$intervention_wt_data$wt)
+    median_A<-surv_median(fit.A)$median
+    #
+    fit.B <- surv_fit(Surv(Time, Event) ~ 1, data = perform_wt$comparator_wt_data)
+    median_B<-surv_median(fit.B)$median
+
+    cox_model <- coxph(Surv(Time, Event==1) ~ ARM, data = perform_wt$analysis_data, weights = wt)
+    HR <- exp(cox_model$coefficients)
+
+    c("HR"=HR, "median_A"=median_A, "median_B"=median_B)
+    }
+
+  # for Richard - to show how the function works
+  test_HR <- boostrap_HR(intervention_data=intervention_data, i=c(1:nrow(intervention_data)), cent_vars = cent_match_cov, comparator_data=comparator_input)
+
+HR_bootstraps <- boot(intervention_data, boostrap_HR, R=1000, cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
+
+  # Bootstrap estimates
+  boot_data <- as.data.frame(HR_bootstraps$t)
+  colnames(boot_data) <- colnames(t(as.data.frame(HR_bootstraps$t0)))
+  head(boot_data)
+
+  # summerise bootstrap estimates
+  hist(boot_data$HR, main = "",xlab = "Boostrapped HR")
+  abline(v= quantile(boot_data$HR,probs = c(0.025,0.5,0.975)), lty=2)
+
+  HR.median <- quantile(boot_data$HR, probs = c(0.5))
+
+  HR.LCI <- quantile(boot_data$HR, probs = c(0.025))
+  HR.UCI <- quantile(boot_data$HR, probs = c(0.975))
+  paste0(HR.median, " (", HR.LCI, ",", HR.UCI, ")")
+
+  # Normal CI
+  boot.ci.HR <- boot.ci(boot.out = HR_bootstraps, index=1, type=c("norm")) # takes specific values
+  boot.ci.RR <- boot.ci(boot.out = HR_bootstraps, index=2, type=c("norm")) # takes specific values
+  # BCA CI
+
+  boot.ci.HR.BCA <- boot.ci(boot.out = HR_bootstraps, index=1, type=c("bca"))
+  boot.ci.RR.BCA <- boot.ci(boot.out = HR_bootstraps, index=2, type=c("bca"))
+
+  # Bootstrap CI function
+  boot.ci.HR$t0
+  boot.ci.HR$normal[2:3]
+
+  boot.ci.HR.BCA$t0
+  boot.ci.HR.BCA$bca[4:5]
 
 
 
@@ -434,29 +437,29 @@ boostrap.func <- function(intervention_data, i, vars, comparator_data, binary_va
 # To be included in the vignette, not as a function in the package
 
 # Set weighted and unweighted intervention data
-baseline_analysis_data <- intervention_wt_data %>% mutate(Treatment=paste0(ARM, "_matched")) %>%
-  rbind(intervention_wt_data %>% mutate(Treatment=paste0(ARM, "_unadjusted"), wt = 1, wt_rs = 1)) %>%
-  select(Treatment, est_weights$matching_vars, wt, wt_rs)
+baseline_analysis_data <- est_weights$intervention_wt_data %>% mutate(Treatment=paste0(ARM, "_matched")) %>%
+  rbind(est_weights$intervention_wt_data %>% mutate(Treatment=paste0(ARM, "_unadjusted"), wt = 1, wt_rs = 1)) %>%
+  select(Treatment, match_cov, wt, wt_rs)
 
-# Renames target population cols to match est_weights$matching_vars
-est_weights$matching_vars
+# Renames target population cols to match match_cov
+match_cov
 names(target_pop)
 target_pop_standard <- target_pop %>%
   #EDIT
   rename(N=N,
-         Treatment=ARM,
+         Treatment="ARM",
          AGE=age.mean,
          SEX=prop.male,
          SMOKE=prop.smoke,
          ECOG0=prop.ecog0
   ) %>%
-  select(N, Treatment, est_weights$matching_vars)
+  select(N, Treatment, match_cov)
 
 # Summerises the baseline characteristics
 Baseline_summary <- baseline_analysis_data %>%
   dplyr::group_by(Treatment) %>%
-  summarise_each(funs(weighted.mean(., wt_rs)),-wt_rs) %>%
-  rbind(target_pop_standard  %>% select(Treatment, est_weights$matching_vars) )
+  summarise_each(list(~ weighted.mean(., wt)),-c(wt,wt_rs)) %>%
+  rbind(target_pop_standard  %>% select(Treatment, match_cov) )
 
 Baseline_summary_n <- baseline_analysis_data %>%
   dplyr::group_by(Treatment) %>%
@@ -468,16 +471,39 @@ Baseline_summary_n <- baseline_analysis_data %>%
 
 Baseline_summary_all <- full_join(Baseline_summary_n, Baseline_summary, by="Treatment")
 
-Baseline_summary_all2 <- cbind(Baseline_summary_all %>% select(-c(est_weights$matching_vars)),
-                               lapply(Baseline_summary_all %>% select(est_weights$matching_vars), sprintf, fmt = "%.2f") %>% as.data.frame())
+Baseline_summary <- cbind(Baseline_summary_all %>% select(-c(match_cov)),
+                               lapply(Baseline_summary_all %>% select(match_cov), sprintf, fmt = "%.2f") %>% as.data.frame())
 
 
 # replace N with ESS
-Baseline_summary_all2$`N/ESS`[Baseline_summary_all2$Treatment == "B"] <- ESS
-
+Baseline_summary$`N/ESS`[Baseline_summary$Treatment == "Intervention_unadjusted"] <- ESS
+Baseline_summary
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #### Survival summaries ------------------------------------------------
 
 
+## HRs
+unweighted.cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_data)
+weighted.cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_data, weights = wt)
+
+
+cox.summ <- rbind(summary(unweighted.cox)$conf.int, summary(weighted.cox)$conf.int) %>%
+  as.data.frame() %>%
+  select(-`exp(-coef)`) %>% #drop unnecessary column
+  rename(HR = `exp(coef)`, HR.low.CI = `lower .95`, HR.upp.CI = `upper .95`) %>%
+  mutate(Method = c("Unadjusted", "Cox weighted")) %>%
+  rbind(data.frame("HR" = HR.median, "HR.low.CI" = boot.ci.HR$normal[2], "HR.upp.CI" = boot.ci.HR$normal[3], "Method"="Normal bootstrap")) %>%
+ rbind(data.frame("HR" = HR.median, "HR.low.CI" = boot.ci.HR.BCA$bca[4], "HR.upp.CI" = boot.ci.HR.BCA$bca[5], "Method"="BCA bootstrap")) %>%
+  mutate(HR.95.CI = paste0(sprintf('%.3f', HR), " (", sprintf('%.3f', HR.low.CI), ", ", sprintf('%.3f', HR.upp.CI), ")")) %>%
+  select(Method, HR.95.CI)
+
+cox.summ
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#### Binary summaries ------------------------------------------------
+
+logistic.regr_OR <- suppressWarnings(glm(Binary_event~ARM, family=binomial(link="logit"), data = est_weights$analysis_data, weight = wt))
+exp(as.numeric(coef(logistic.regr_OR)[2]))
+summary(logistic.regr_OR)
