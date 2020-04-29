@@ -14,7 +14,7 @@ gradfn <- function(a1, X){
 
 # External functions ------------------------------------------------------
 
-#' Estimate MAIC propensity weights
+#' Estimate MAIC propensity weights HELP PAGE NEEDS UPDATING
 #'
 #' Estimate propensity weights for matched-adjusted indirect comparison (MAIC)
 #'
@@ -61,7 +61,7 @@ estimate_weights <- function(intervention_data, matching_vars, ...){
 
 # Functions for summarizing the weights ---------------------------------
 
-#' Estimate effective sample size
+#' Estimate effective sample size HELP PAGE NEEDS UPDATING
 #'
 #' Estimate the effective sample size (ESS).
 #'
@@ -87,7 +87,7 @@ estimate_ess <- function(intervention_wts, wt_col=WT){
   return(ess)
 }
 
-#' Summarize the weight values
+#' Summarize the weight values HELP PAGE NEEDS UPDATING
 #'
 #' Produce a summary of the weights (minimum, maximum, median, mean, sd). Mean
 #' and standard deviation are provided for completeness. In practice the
@@ -118,7 +118,7 @@ summarize_wts <- function(intervention_wts, wt_col=WT){
   }
 
 
-#' Produce histograms of weights and rescaled weights
+#' Produce histograms of weights and rescaled weights HELP PAGE NEEDS UPDATING
 #'
 #' Produce a plot containing two histograms (one of the weights and one of the recaled weights).
 #'
@@ -156,7 +156,7 @@ hist_wts <- function(intervention_wts, wt_col="WT", rs_wt_col="WT_RS"){
   return(hist_plot)
 }
 
-#' Produce a data frame of the weights assigned to alternative patient profiles
+#' Produce a data frame of the weights assigned to alternative patient profiles HELP PAGE NEEDS UPDATING
 #'
 #' Select the patient characteristics used in the matching and the MAIC weights
 #' and output a data frame of unique propensity weight values with the
@@ -192,7 +192,7 @@ profile_wts <- function(intervention_wts, wt_col="WT", rs_wt_col="WT_RS", matchi
   return(profile_data)
 }
 
-#' Weight diagnostics
+#' Weight diagnostics HELP PAGE NEEDS UPDATING
 #'
 #' Produce a set of useful diagnostic metrics to summarize propensity weights
 #' \itemize{
@@ -226,7 +226,9 @@ wt_diagnostics <- function(intervention_wts, wt_col=WT, rs_wt_col=WT_RS, matchin
   # Run each function
 
   # Return a list of data frames containing the outputs produced by estimate_ess, summarize_wts and profile_wt
-}
+
+
+  }
 
 
 
