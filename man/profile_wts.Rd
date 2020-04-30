@@ -4,7 +4,7 @@
 \alias{profile_wts}
 \title{Produce a data frame of the weights assigned to alternative patient profiles HELP PAGE NEEDS UPDATING}
 \usage{
-profile_wts(data, wt = wt, wt_rs = wt_rs, vars)
+profile_wts(data, wt = "wt", wt_rs = "wt_rs", vars)
 }
 \arguments{
 \item{intervention_wts}{A data frame containing individual patient data from

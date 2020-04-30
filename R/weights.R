@@ -103,8 +103,8 @@ estimate_weights <- function(intervention_data, cent_vars, comparator_data){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-estimate_ess <- function(data, wt=wt){
-  ess <- sum(data$wt)^2/sum(data$wt^2)
+estimate_ess <- function(data, wt="wt"){
+  ess <- sum(data[,wt])^2/sum(data[,wt]^2)
   return(ess)
 }
 
@@ -208,7 +208,7 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin_width=NULL) {
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-profile_wts <- function(data, wt=wt, wt_rs=wt_rs, vars){
+profile_wts <- function(data, wt="wt", wt_rs="wt_rs", vars){
   profile_data <-  data %>%
     select(vars, wt, wt_rs)
 

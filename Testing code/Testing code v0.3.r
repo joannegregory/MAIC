@@ -130,6 +130,7 @@ weight_rs_summ
 ##### Weight profiles
 
 wts_profile <- profile_wts(data=est_weights$intervention_wt_data, vars = match_cov)
+head(wts_profile)
 
 # worth adding something like this?
 plot(wts_profile$AGE, wts_profile$wt)

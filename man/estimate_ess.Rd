@@ -4,7 +4,7 @@
 \alias{estimate_ess}
 \title{Estimate effective sample size HELP PAGE NEEDS UPDATING}
 \usage{
-estimate_ess(data, wt = wt)
+estimate_ess(data, wt = "wt")
 }
 \arguments{
 \item{intervention_wts}{A data frame containing individual patient data from
