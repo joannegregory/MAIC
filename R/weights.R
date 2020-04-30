@@ -35,25 +35,23 @@ gradfn <- function(a1, X){
 #'   THE DECISION SUPPORT UNIT, December 2016
 #'
 #' @export
-estimate_weights <- function(intervention_data, cent_vars, comparator_data){
+estimate_weights <- function(intervention_data, comparator_data, matching_vars){
 
   # Optimise Q(b) using Newton-Raphson techniques
-  print(opt1 <- optim(par = rep(0,dim(intervention_data[,cent_vars])[2]),
-                      fn = objfn,
-                      gr = gradfn,
-                      X = as.matrix(intervention_data[,cent_vars]),
-                      method = "BFGS"))
+  opt1 <- optim(par = rep(0,dim(intervention_data[,matching_vars])[2]),
+                fn = objfn,
+                gr = gradfn,
+                X = as.matrix(intervention_data[,matching_vars]),
+                method = "BFGS")
 
   a1 <- opt1$par
 
 
   # Calculation of weights.
-  wt <- as.vector(exp(as.matrix(intervention_data[,cent_vars]) %*% a1))
+  wt <- as.vector(exp(as.matrix(intervention_data[,matching_vars]) %*% a1))
 
   # rescaled weights
   wt_rs <- (wt / sum(wt)) * dim(intervention_data)[1]
-
-
 
   # combine data with weights
   data_with_wts <- cbind(intervention_data, wt, wt_rs) %>%
@@ -66,16 +64,13 @@ estimate_weights <- function(intervention_data, cent_vars, comparator_data){
   all_data <- rbind.fill(data_with_wts, comparator_data_wts)
   all_data$ARM <- relevel(as.factor(all_data$ARM), ref="Comparator")
 
-
-
   # Outputs are:
   #       - the analysis data (intervention PLD, weights and comparator pseudo PLD)
   #       - A charcacter vector with the name of the centered matching variables
   #       - A charcacter vector with the name of the matching variables
-  output <- list(analysis_data = all_data,
-                 centered_matching_vars = cent_vars,
-                 intervention_wt_data=data_with_wts,
-                 comparator_wt_data = comparator_data_wts
+  output <- list(
+    matching_vars = matching_vars,
+    analysis_data = all_data
   )
 
   return(output)
