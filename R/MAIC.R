@@ -5,4 +5,5 @@
 #'
 #' @docType package
 #' @name MAIC
+#' @importFrom magrittr "%>%"
 NULL

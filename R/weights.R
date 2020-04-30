@@ -37,6 +37,33 @@ gradfn <- function(a1, X){
 #' @export
 estimate_weights <- function(intervention_data, comparator_data, matching_vars){
 
+  #Basic checks of inputs before proceeding
+  #Check intervention data is a data frame
+  assertthat::assert_that(
+    is.data.frame(intervention_data),
+    msg = "intervention_data is expected to be a data frame"
+  )
+  #Check comparator data is a data frame
+  assertthat::assert_that(
+    is.data.frame(comparator_data),
+    msg = "comparator_data is expected to be a data frame"
+  )
+  #Check that matching_vars is a character vector
+  assertthat::assert_that(
+    is.character(matching_vars),
+    msg = "matching_vars is expected to be a character vector"
+  )
+  #Check that all named matching variables are in the intervention dataset
+  assertthat::assert_that(
+    all(matching_vars %in% colnames(intervention_data)),
+    msg = "matching_vars contains variable names that are not in the intervention dataset"
+  )
+
+  assertthat::assert_that(
+    all(colnames(comparator_data) %in% colnames(intervention_data)),
+    msg = "Column names in the comparator dataset do not all match columns in the intervention dataset. Check your inputs"
+  )
+
   # Optimise Q(b) using Newton-Raphson techniques
   opt1 <- optim(par = rep(0,dim(intervention_data[,matching_vars])[2]),
                 fn = objfn,
@@ -46,19 +73,16 @@ estimate_weights <- function(intervention_data, comparator_data, matching_vars){
 
   a1 <- opt1$par
 
-
-  # Calculation of weights.
-  wt <- as.vector(exp(as.matrix(intervention_data[,matching_vars]) %*% a1))
-
-  # rescaled weights
-  wt_rs <- (wt / sum(wt)) * dim(intervention_data)[1]
-
-  # combine data with weights
-  data_with_wts <- cbind(intervention_data, wt, wt_rs) %>%
-    mutate(ARM="Intervention")
+  # Calculate weights for intervention data and combine with dataset
+  data_with_wts <- dplyr::mutate(intervention_data,
+                                 wt = as.vector(exp(as.matrix(intervention_data[,matching_vars]) %*% a1)), # weights
+                                 wt_rs = (wt / sum(wt)) * nrow(intervention_data), # rescaled weights
+                                 ARM = "Intervention"
+  )
 
   # assign weight=1 to comparator data
-  comparator_data_wts <- comparator_data %>% mutate(wt=1, wt_rs=1, ARM="Comparator")
+  comparator_data_wts <- comparator_data %>%
+    dplyr::mutate(wt=1, wt_rs=1, ARM="Comparator")
 
   # Join comparator data with the intervention data
   all_data <- rbind.fill(data_with_wts, comparator_data_wts)
