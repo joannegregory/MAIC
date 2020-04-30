@@ -138,13 +138,11 @@ plot(wts_profile$AGE, wts_profile$wt)
 boxplot(wts_profile$SEX , wts_profile$wt)
 
 #### Histograms
-
-
-histogram <- hist_wts(data=est_weights$intervention_wt_data)
+# Plot histograms of unscaled and rescaled weights
+# bin_width needs to be adapted depending on the sample size in the data set
+histogram <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
+  hist_wts(bin = 50)
 histogram
-
-histogram_bw <- hist_wts(data=est_weights$intervention_wt_data, bin_width=0.1)
-histogram_bw
 
 
 

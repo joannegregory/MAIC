@@ -148,11 +148,11 @@ estimate_ess <- function(data, wt="wt"){
 #' @export
 summarize_wts <- function(data, wt="wt"){
   summary <- data.frame(
-    min = min(data[,wt]),
-    max = max(data[,wt]),
-    median = median(data[,wt]),
     mean = mean(data[,wt]),
-    sd = sd(data[,wt])
+    sd = sd(data[,wt]),
+    median = median(data[,wt]),
+    min = min(data[,wt]),
+    max = max(data[,wt])
   )
   return(summary)
 }
@@ -176,23 +176,20 @@ summarize_wts <- function(data, wt="wt"){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin_width=NULL) {
+hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 
-  wt_data <- data[,c(wt_col, rs_wt_col)] %>% # select only the weights and rescaled weights
+  wt_data <- data %>%
+    dplyr::select(c(wt_col, rs_wt_col)) %>% # select only the weights and rescaled weights
     rename("Weights" = wt_col, "Rescaled weights" = rs_wt_col) %>% # rename so for plots
     gather() # weights and rescaled weights in one column for plotting
 
-  hist_plot <- qplot(data = wt_data,
-                     value,
-                     geom = "histogram",
-                     xlab = "Histograms of weights and rescaled weights",
-                     binwidth = bin_width
-  ) +
-    facet_wrap(~key,  ncol=1) + # gives the two plots (one on top of the other)
-    theme_bw()+
-    theme(axis.title = element_text(size = 16),
-          axis.text = element_text(size = 16))+
-    ylab("Frequency")
+
+  hist_plot <- ggplot2::ggplot(wt_data) + ggplot2::geom_histogram(aes(value), bins = bin) +
+    ggplot2::facet_wrap(~key,  ncol=1) + # gives the two plots (one on top of the other)
+    ggplot2::theme_bw()+
+    ggplot2::theme(axis.title = element_text(size = 16),
+                   axis.text = element_text(size = 16)) +
+    ggplot2::ylab("Frequency")
 
   return(hist_plot)
 }
