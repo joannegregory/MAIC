@@ -148,15 +148,15 @@ histogram
 
 #### All weight diagnostics
 
-# Function to combine weight diagnostic functions above:
-
-
-diagnostics <- all_wt_diagnostics(data=est_weights$intervention_wt_data, matching_vars = match_cov, bin_width=0.1)
+# Function to produce a set of diagnostics.
+# Calls each of the diagnostic functions above except for plotting histograms
+diagnostics <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
+  wt_diagnostics(matching_vars = est_weights$matching_vars)
 
 diagnostics$ESS
 diagnostics$Summary_of_weights
 diagnostics$Weight_profiles
-diagnostics$Histogram_of_weights
+
 
 
 

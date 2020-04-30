@@ -262,11 +262,7 @@ profile_wts <- function(data, wt="wt", wt_rs="wt_rs", vars){
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{estimate_ess}}, \code{\link{summarize_wts}}, \code{\link{profile_wts}}
 #' @export
-all_wt_diagnostics <- function(data, # analysis data from estimate_weights
-                               #arm,
-                               matching_vars,
-                               wt="wt",
-                               ...){
+wt_diagnostics <- function(data, matching_vars, wt="wt"){
 
   # ESS
   ESS <- estimate_ess(data)
@@ -277,12 +273,8 @@ all_wt_diagnostics <- function(data, # analysis data from estimate_weights
   # Weight profiles
   profile <- profile_wts(data, vars=matching_vars)
 
-  # Histogram of weights
-  hist_plot <- hist_wts(data, ...)
-
   output <- list("ESS" = ESS,
                  "Summary_of_weights" = summ_wts,
-                 "Histogram_of_weights" = hist_plot,
                  "Weight_profiles" = profile
   )
   return(output)

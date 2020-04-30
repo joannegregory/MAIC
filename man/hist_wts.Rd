@@ -4,7 +4,7 @@
 \alias{hist_wts}
 \title{Produce histograms of weights and rescaled weights HELP PAGE NEEDS UPDATING}
 \usage{
-hist_wts(data, wt_col = "wt", rs_wt_col = "wt_rs", bin_width = NULL)
+hist_wts(data, wt_col = "wt", rs_wt_col = "wt_rs", bin = 30)
 }
 \arguments{
 \item{wt_col}{The name of the weights column in the data frame containing the
