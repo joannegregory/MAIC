@@ -172,18 +172,18 @@ test <- boostrap_OR(intervention_data=intervention_data, i=c(1:nrow(intervention
 OR_bootstraps <- boot(intervention_data, boostrap_OR, R=1000, cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
 
 # Bootstrap estimates
-boot_data <- as.data.frame(OR_bootstraps$t)
-colnames(boot_data) <- colnames(t(as.data.frame(OR_bootstraps$t0)))
-head(boot_data)
+OR_boot_data <- as.data.frame(OR_bootstraps$t)
+colnames(OR_boot_data) <- colnames(t(as.data.frame(OR_bootstraps$t0)))
+head(OR_boot_data)
 
 # summerise bootstrap estimates
-hist(boot_data$OR, main = "",xlab = "Boostrapped OR")
-abline(v= quantile(boot_data$OR,probs = c(0.025,0.5,0.975)), lty=2)
+hist(OR_boot_data$OR, main = "",xlab = "Boostrapped OR")
+abline(v= quantile(OR_boot_data$OR,probs = c(0.025,0.5,0.975)), lty=2)
 
-OR.median <- quantile(boot_data$OR, probs = c(0.5))
+OR.median <- quantile(OR_boot_data$OR, probs = c(0.5))
 
-OR.LCI <- quantile(boot_data$OR, probs = c(0.025))
-OR.UCI <- quantile(boot_data$OR, probs = c(0.975))
+OR.LCI <- quantile(OR_boot_data$OR, probs = c(0.025))
+OR.UCI <- quantile(OR_boot_data$OR, probs = c(0.975))
 paste0(OR.median, " (", OR.LCI, ",", OR.UCI, ")")
 
 # Normal CI
@@ -212,18 +212,18 @@ boot.ci.OR.BCA$bca[4:5]
 HR_bootstraps <- boot(intervention_data, boostrap_HR, R=1000, cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
 
   # Bootstrap estimates
-  boot_data <- as.data.frame(HR_bootstraps$t)
-  colnames(boot_data) <- colnames(t(as.data.frame(HR_bootstraps$t0)))
-  head(boot_data)
+  HR_boot_data <- as.data.frame(HR_bootstraps$t)
+  colnames(HR_boot_data) <- colnames(t(as.data.frame(HR_bootstraps$t0)))
+  head(HR_boot_data)
 
   # summerise bootstrap estimates
-  hist(boot_data$HR, main = "",xlab = "Boostrapped HR")
-  abline(v= quantile(boot_data$HR,probs = c(0.025,0.5,0.975)), lty=2)
+  hist(HR_boot_data$HR, main = "",xlab = "Boostrapped HR")
+  abline(v= quantile(HR_boot_data$HR,probs = c(0.025,0.5,0.975)), lty=2)
 
-  HR.median <- quantile(boot_data$HR, probs = c(0.5))
+  HR.median <- quantile(HR_boot_data$HR, probs = c(0.5))
 
-  HR.LCI <- quantile(boot_data$HR, probs = c(0.025))
-  HR.UCI <- quantile(boot_data$HR, probs = c(0.975))
+  HR.LCI <- quantile(HR_boot_data$HR, probs = c(0.025))
+  HR.UCI <- quantile(HR_boot_data$HR, probs = c(0.975))
   paste0(HR.median, " (", HR.LCI, ",", HR.UCI, ")")
 
   # Normal CI
