@@ -35,47 +35,66 @@ gradfn <- function(a1, X){
 #'   THE DECISION SUPPORT UNIT, December 2016
 #'
 #' @export
-estimate_weights <- function(intervention_data, cent_vars, comparator_data){
+estimate_weights <- function(intervention_data, comparator_data, matching_vars){
+
+  #Basic checks of inputs before proceeding
+  #Check intervention data is a data frame
+  assertthat::assert_that(
+    is.data.frame(intervention_data),
+    msg = "intervention_data is expected to be a data frame"
+  )
+  #Check comparator data is a data frame
+  assertthat::assert_that(
+    is.data.frame(comparator_data),
+    msg = "comparator_data is expected to be a data frame"
+  )
+  #Check that matching_vars is a character vector
+  assertthat::assert_that(
+    is.character(matching_vars),
+    msg = "matching_vars is expected to be a character vector"
+  )
+  #Check that all named matching variables are in the intervention dataset
+  assertthat::assert_that(
+    all(matching_vars %in% colnames(intervention_data)),
+    msg = "matching_vars contains variable names that are not in the intervention dataset"
+  )
+
+  assertthat::assert_that(
+    all(colnames(comparator_data) %in% colnames(intervention_data)),
+    msg = "Column names in the comparator dataset do not all match columns in the intervention dataset. Check your inputs"
+  )
 
   # Optimise Q(b) using Newton-Raphson techniques
-  print(opt1 <- optim(par = rep(0,dim(intervention_data[,cent_vars])[2]),
-                      fn = objfn,
-                      gr = gradfn,
-                      X = as.matrix(intervention_data[,cent_vars]),
-                      method = "BFGS"))
+  opt1 <- optim(par = rep(0,dim(intervention_data[,matching_vars])[2]),
+                fn = objfn,
+                gr = gradfn,
+                X = as.matrix(intervention_data[,matching_vars]),
+                method = "BFGS")
 
   a1 <- opt1$par
 
-
-  # Calculation of weights.
-  wt <- as.vector(exp(as.matrix(intervention_data[,cent_vars]) %*% a1))
-
-  # rescaled weights
-  wt_rs <- (wt / sum(wt)) * dim(intervention_data)[1]
-
-
-
-  # combine data with weights
-  data_with_wts <- cbind(intervention_data, wt, wt_rs) %>%
-    mutate(ARM="Intervention")
+  # Calculate weights for intervention data and combine with dataset
+  data_with_wts <- dplyr::mutate(intervention_data,
+                                 wt = as.vector(exp(as.matrix(intervention_data[,matching_vars]) %*% a1)), # weights
+                                 wt_rs = (wt / sum(wt)) * nrow(intervention_data), # rescaled weights
+                                 ARM = "Intervention"
+  )
 
   # assign weight=1 to comparator data
-  comparator_data_wts <- comparator_data %>% mutate(wt=1, wt_rs=1, ARM="Comparator")
+  comparator_data_wts <- comparator_data %>%
+    dplyr::mutate(wt=1, wt_rs=1, ARM="Comparator")
 
   # Join comparator data with the intervention data
   all_data <- rbind.fill(data_with_wts, comparator_data_wts)
   all_data$ARM <- relevel(as.factor(all_data$ARM), ref="Comparator")
 
-
-
   # Outputs are:
   #       - the analysis data (intervention PLD, weights and comparator pseudo PLD)
   #       - A charcacter vector with the name of the centered matching variables
   #       - A charcacter vector with the name of the matching variables
-  output <- list(analysis_data = all_data,
-                 centered_matching_vars = cent_vars,
-                 intervention_wt_data=data_with_wts,
-                 comparator_wt_data = comparator_data_wts
+  output <- list(
+    matching_vars = matching_vars,
+    analysis_data = all_data
   )
 
   return(output)
@@ -129,11 +148,11 @@ estimate_ess <- function(data, wt="wt"){
 #' @export
 summarize_wts <- function(data, wt="wt"){
   summary <- data.frame(
-    min = min(data[,wt]),
-    max = max(data[,wt]),
-    median = median(data[,wt]),
     mean = mean(data[,wt]),
-    sd = sd(data[,wt])
+    sd = sd(data[,wt]),
+    median = median(data[,wt]),
+    min = min(data[,wt]),
+    max = max(data[,wt])
   )
   return(summary)
 }
@@ -157,23 +176,20 @@ summarize_wts <- function(data, wt="wt"){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin_width=NULL) {
+hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 
-  wt_data <- data[,c(wt_col, rs_wt_col)] %>% # select only the weights and rescaled weights
+  wt_data <- data %>%
+    dplyr::select(c(wt_col, rs_wt_col)) %>% # select only the weights and rescaled weights
     rename("Weights" = wt_col, "Rescaled weights" = rs_wt_col) %>% # rename so for plots
     gather() # weights and rescaled weights in one column for plotting
 
-  hist_plot <- qplot(data = wt_data,
-                     value,
-                     geom = "histogram",
-                     xlab = "Histograms of weights and rescaled weights",
-                     binwidth = bin_width
-  ) +
-    facet_wrap(~key,  ncol=1) + # gives the two plots (one on top of the other)
-    theme_bw()+
-    theme(axis.title = element_text(size = 16),
-          axis.text = element_text(size = 16))+
-    ylab("Frequency")
+
+  hist_plot <- ggplot2::ggplot(wt_data) + ggplot2::geom_histogram(aes(value), bins = bin) +
+    ggplot2::facet_wrap(~key,  ncol=1) + # gives the two plots (one on top of the other)
+    ggplot2::theme_bw()+
+    ggplot2::theme(axis.title = element_text(size = 16),
+                   axis.text = element_text(size = 16)) +
+    ggplot2::ylab("Frequency")
 
   return(hist_plot)
 }
@@ -246,11 +262,7 @@ profile_wts <- function(data, wt="wt", wt_rs="wt_rs", vars){
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{estimate_ess}}, \code{\link{summarize_wts}}, \code{\link{profile_wts}}
 #' @export
-all_wt_diagnostics <- function(data, # analysis data from estimate_weights
-                               #arm,
-                               matching_vars,
-                               wt="wt",
-                               ...){
+wt_diagnostics <- function(data, matching_vars, wt="wt"){
 
   # ESS
   ESS <- estimate_ess(data)
@@ -261,12 +273,8 @@ all_wt_diagnostics <- function(data, # analysis data from estimate_weights
   # Weight profiles
   profile <- profile_wts(data, vars=matching_vars)
 
-  # Histogram of weights
-  hist_plot <- hist_wts(data, ...)
-
   output <- list("ESS" = ESS,
                  "Summary_of_weights" = summ_wts,
-                 "Histogram_of_weights" = hist_plot,
                  "Weight_profiles" = profile
   )
   return(output)

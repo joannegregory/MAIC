@@ -8,7 +8,7 @@
 # Load libraries --------------------------------------------------
 library(plyr)
 library(dplyr)
-library(haven)
+#library(haven)
 library(ggplot2)
 library(tidyr)
 library(boot)
@@ -31,14 +31,14 @@ data_path <- file.path(base_dir,'2 Exploratory/Simulated datasets')
 #### Intervention data
 
 # Read in ADaM data and rename variables of interest
-adsl <- read.csv(file.path(data_path, "adsl.csv")) %>% # subject level data
+adsl <- read.csv(file.path(data_path, "adsl.csv"), row.names = 1) %>% # subject level data
   mutate(SEX=ifelse(SEX=="Male",1,0))
 
-adrs <- read.csv(file.path(data_path, "adrs.csv")) %>% # response data
+adrs <- read.csv(file.path(data_path, "adrs.csv"), row.names = 1) %>% # response data
   filter(PARAM=="Response") %>%
   select(USUBJID, ARM, Binary_event=AVAL) ## change "Binary_event" to "response"?
 
-adtte <- read.csv(file.path(data_path, "adtte.csv")) %>% # time to event data
+adtte <- read.csv(file.path(data_path, "adtte.csv"), row.names = 1) %>% # time to event data
   filter(PARAMCD=="OS") %>%
   mutate(Event=1-CNSR) %>%
   select(USUBJID, ARM, Time=AVAL, Event)
@@ -48,11 +48,11 @@ intervention_input <- join_all(list(adsl, adrs, adtte), type = "full", by=c("USU
 
 #### Comparator pseudo data
 
-# read in pseudo survival data
-comparator_surv <- read.csv(file.path(data_path,"psuedo_IPD.csv"))
+# read in digitised pseudo survival data
+comparator_surv <- read.csv(file.path(data_path,"psuedo_IPD.csv"), row.names = 1)
 
 # simulate response data based on the known proportion of responders
-comparator_n <- 300 # total number of patients in the comparator data
+comparator_n <- nrow(comparator_surv) # total number of patients in the comparator data
 comparator_prop_events <- 0.4 # proportion of responders
 comparator_binary <- data.frame("Binary_event"=
                                   c(rep(1,comparator_n*comparator_prop_events),
@@ -62,8 +62,8 @@ comparator_binary <- data.frame("Binary_event"=
 # rows do not represent the same observation
 comparator_input <- cbind(comparator_surv, comparator_binary)
 
-# Baseline agregate data for the comparator popultion
-target_pop <- read.csv(file.path(data_path,"Aggregate data.csv"))
+# Baseline aggregate data for the comparator population
+target_pop <- read.csv(file.path(data_path,"Aggregate data.csv"), row.names = 1)
 target_pop
 
 
@@ -100,8 +100,8 @@ match_cov <- c("AGE",
 #  estimate weights, rescaled weights  -----------------
 
 est_weights <- estimate_weights(intervention_data=intervention_data,
-                                cent_vars = cent_match_cov,
-                                comparator_data=comparator_input)
+                                comparator_data=comparator_input,
+                                matching_vars = cent_match_cov)
 
 head(est_weights$analysis_data)
 head(est_weights$intervention_wt_data)
@@ -111,25 +111,26 @@ est_weights$centered_matching_vars
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Weight diagnostics ----------------------------------------------
-
-
 #### ESS
-
-ESS <- estimate_ess(data=est_weights$intervention_wt_data)
+#extract data for the intervention arm and calculate ESS
+ESS <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
+  estimate_ess(wt = 'wt')
 ESS
 
-
 #### Weights summary
-weight_summ <- summarize_wts(data=est_weights$intervention_wt_data)
+#extract data for the intervention arm and calculate summary statistics for the weights
+weight_summ <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
+  summarize_wts()
 weight_summ
 
-weight_rs_summ <- summarize_wts(data=est_weights$intervention_wt_data, wt="wt_rs")
+#extract data for the intervention arm and calculate summary statistics for the rescaled weights
+weight_rs_summ <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
+  summarize_wts(wt="wt_rs")
 weight_rs_summ
 
-
 ##### Weight profiles
-
-wts_profile <- profile_wts(data=est_weights$intervention_wt_data, vars = match_cov)
+wts_profile <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
+  profile_wts(vars = match_cov)
 head(wts_profile)
 
 # worth adding something like this?
@@ -137,27 +138,25 @@ plot(wts_profile$AGE, wts_profile$wt)
 boxplot(wts_profile$SEX , wts_profile$wt)
 
 #### Histograms
-
-
-histogram <- hist_wts(data=est_weights$intervention_wt_data)
+# Plot histograms of unscaled and rescaled weights
+# bin_width needs to be adapted depending on the sample size in the data set
+histogram <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
+  hist_wts(bin = 50)
 histogram
-
-histogram_bw <- hist_wts(data=est_weights$intervention_wt_data, bin_width=0.1)
-histogram_bw
 
 
 
 #### All weight diagnostics
 
-# Function to combine weight diagnostic functions above:
-
-
-diagnostics <- all_wt_diagnostics(data=est_weights$intervention_wt_data, matching_vars = match_cov, bin_width=0.1)
+# Function to produce a set of diagnostics.
+# Calls each of the diagnostic functions above except for plotting histograms
+diagnostics <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
+  wt_diagnostics(matching_vars = est_weights$matching_vars)
 
 diagnostics$ESS
 diagnostics$Summary_of_weights
 diagnostics$Weight_profiles
-diagnostics$Histogram_of_weights
+
 
 
 
