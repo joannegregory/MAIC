@@ -14,7 +14,7 @@ gradfn <- function(a1, X){
 
 # External functions ------------------------------------------------------
 
-#' Estimate MAIC propensity weights HELP PAGE NEEDS UPDATING
+#' Estimate MAIC propensity weights HELP PAGE NEEDS UPDATING TEST
 #'
 #' Estimate propensity weights for matched-adjusted indirect comparison (MAIC)
 #'

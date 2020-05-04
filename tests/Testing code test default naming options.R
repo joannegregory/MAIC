@@ -8,7 +8,7 @@
 # Load libraries --------------------------------------------------
 library(plyr)
 library(dplyr)
-#library(haven)
+library(haven)
 library(ggplot2)
 library(tidyr)
 library(boot)
@@ -48,11 +48,11 @@ intervention_input <- join_all(list(adsl, adrs, adtte), type = "full", by=c("USU
 
 #### Comparator pseudo data
 
-# read in digitised pseudo survival data
+# read in pseudo survival data
 comparator_surv <- read.csv(file.path(data_path,"psuedo_IPD.csv"))
 
 # simulate response data based on the known proportion of responders
-comparator_n <- nrow(comparator_surv) # total number of patients in the comparator data
+comparator_n <- 300 # total number of patients in the comparator data
 comparator_prop_events <- 0.4 # proportion of responders
 comparator_binary <- data.frame("Binary_event"=
                                   c(rep(1,comparator_n*comparator_prop_events),
@@ -62,7 +62,7 @@ comparator_binary <- data.frame("Binary_event"=
 # rows do not represent the same observation
 comparator_input <- cbind(comparator_surv, comparator_binary)
 
-# Baseline aggregate data for the comparator population
+# Baseline agregate data for the comparator popultion
 target_pop <- read.csv(file.path(data_path,"Aggregate data.csv"))
 target_pop
 
@@ -100,35 +100,37 @@ match_cov <- c("AGE",
 #  estimate weights, rescaled weights  -----------------
 
 est_weights <- estimate_weights(intervention_data=intervention_data,
-                                comparator_data=comparator_input,
-                                matching_vars = cent_match_cov)
+                                cent_vars = cent_match_cov,
+                                comparator_data=comparator_input)
 
 head(est_weights$analysis_data)
-est_weights$matching_vars
+head(est_weights$intervention_wt_data)
+head(est_weights$comparator_wt_data)
+est_weights$centered_matching_vars
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Weight diagnostics ----------------------------------------------
+
+test <- est_weights$intervention_wt_data %>%
+  rename(weights=wt, rescalled=wt_rs)
 #### ESS
-#extract data for the intervention arm and calculate ESS
-ESS <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
-  estimate_ess(wt = 'wt')
+
+ESS <- estimate_ess(data=test)
 ESS
 
+
 #### Weights summary
-#extract data for the intervention arm and calculate summary statistics for the weights
-weight_summ <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
-  summarize_wts()
+weight_summ <- summarize_wts(data=test, wt="weights")
 weight_summ
 
-#extract data for the intervention arm and calculate summary statistics for the rescaled weights
-weight_rs_summ <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
-  summarize_wts(wt="wt_rs")
+weight_rs_summ <- summarize_wts(data=test, wt="wt_rs")
 weight_rs_summ
 
+
 ##### Weight profiles
-wts_profile <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
-  profile_wts(vars = match_cov)
+
+wts_profile <- profile_wts(data=test, vars = match_cov, wt="weights", wt_rs="rescalled")
 head(wts_profile)
 
 # worth adding something like this?
@@ -136,25 +138,27 @@ plot(wts_profile$AGE, wts_profile$wt)
 boxplot(wts_profile$SEX , wts_profile$wt)
 
 #### Histograms
-# Plot histograms of unscaled and rescaled weights
-# bin_width needs to be adapted depending on the sample size in the data set
-histogram <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
-  hist_wts(bin = 50)
+
+
+histogram <- hist_wts(data=test)
 histogram
+
+histogram_bw <- hist_wts(data=test, bin_width=0.1, wt="weights", wt_rs="rescalled")
+histogram_bw
 
 
 
 #### All weight diagnostics
 
-# Function to produce a set of diagnostics.
-# Calls each of the diagnostic functions above except for plotting histograms
-diagnostics <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
-  wt_diagnostics(matching_vars = est_weights$matching_vars)
+# Function to combine weight diagnostic functions above:
+
+
+diagnostics <- all_wt_diagnostics(data=test, matching_vars = match_cov, bin_width=0.1)
 
 diagnostics$ESS
 diagnostics$Summary_of_weights
 diagnostics$Weight_profiles
-
+diagnostics$Histogram_of_weights
 
 
 
@@ -205,7 +209,7 @@ boot.ci.OR.BCA$bca[4:5]
 
 
   # for Richard - to show how the function works
-test_HR <- boostrap_HR(intervention_data=intervention_data, i=c(1:nrow(intervention_data)), cent_vars = cent_match_cov, comparator_data=comparator_input)
+  test_HR <- boostrap_HR(intervention_data=intervention_data, i=c(1:nrow(intervention_data)), cent_vars = cent_match_cov, comparator_data=comparator_input)
 
 HR_bootstraps <- boot(intervention_data, boostrap_HR, R=1000, cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
 
@@ -250,8 +254,8 @@ HR_bootstraps <- boot(intervention_data, boostrap_HR, R=1000, cent_vars = cent_m
 # To be included in the vignette, not as a function in the package
 
 # Set weighted and unweighted intervention data
-baseline_analysis_data <- est_weights$analysis_data %>% filter(ARM=="Intervention") %>% dplyr::mutate(Treatment=paste0(ARM, "_matched")) %>%
-  rbind(est_weights$analysis_data %>% filter(ARM=="Intervention")%>% mutate(Treatment=paste0(ARM, "_unadjusted"), wt = 1, wt_rs = 1)) %>%
+baseline_analysis_data <- est_weights$intervention_wt_data %>% mutate(Treatment=paste0(ARM, "_matched")) %>%
+  rbind(est_weights$intervention_wt_data %>% mutate(Treatment=paste0(ARM, "_unadjusted"), wt = 1, wt_rs = 1)) %>%
   select(Treatment, match_cov, wt, wt_rs)
 
 # Renames target population cols to match match_cov

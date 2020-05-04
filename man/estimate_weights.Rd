@@ -2,7 +2,7 @@
 % Please edit documentation in R/weights.R
 \name{estimate_weights}
 \alias{estimate_weights}
-\title{Estimate MAIC propensity weights HELP PAGE NEEDS UPDATING}
+\title{Estimate MAIC propensity weights HELP PAGE NEEDS UPDATING TEST}
 \usage{
 estimate_weights(intervention_data, comparator_data, matching_vars)
 }
