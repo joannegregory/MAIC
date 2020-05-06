@@ -165,7 +165,7 @@ diagnostics$Weight_profiles
 # This function is intended to be used in conjunction with the boot function, not called directly by the user
 int <- filter(est_weights$analysis_data, ARM == 'Intervention')
 comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
-OR <- boostrap_OR(intervention_data=int, comparator_data=comp, matching = est_weights$matching_vars,
+OR <- bootstrap_OR(intervention_data=int, comparator_data=comp, matching = est_weights$matching_vars,
                   i=c(1:nrow(intervention_data)), model = 'Binary_event ~ ARM'
                   )
 
@@ -194,7 +194,7 @@ boot.ci.OR.BCA$bca[4:5]
 # This function is intended to be used in conjunction with the boot function, not called directly by the user
 int <- filter(est_weights$analysis_data, ARM == 'Intervention')
 comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
-HR <- boostrap_HR(intervention_data=int, comparator_data=comp, matching = est_weights$matching_vars,
+HR <- bootstrap_HR(intervention_data=int, comparator_data=comp, matching = est_weights$matching_vars,
                   i=c(1:nrow(intervention_data)), model = Surv(Time, Event==1) ~ ARM
                   )
 

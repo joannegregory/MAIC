@@ -21,7 +21,7 @@
 #' @seealso \code{\link{analysis_dataset}}, \code{\link{estimate_weights}}, \code{\link{HR_summary}}
 #' @export
 
-boostrap_HR <- function(intervention_data, comparator_data, matching, i, model){
+bootstrap_HR <- function(intervention_data, comparator_data, matching, i, model){
 
   # Samples the data
   bootstrap_data <- intervention_data[i,]
@@ -62,7 +62,7 @@ boostrap_HR <- function(intervention_data, comparator_data, matching, i, model){
 #'
 #' @seealso \code{\link{analysis_dataset}}, \code{\link{estimate_weights}}, \code{\link{OR_summary}}
 #' @export
-boostrap_OR <- function(intervention_data, comparator_data, matching, i, model){
+bootstrap_OR <- function(intervention_data, comparator_data, matching, i, model){
 
   # Samples the data
   bootstrap_data <- intervention_data[i,]
