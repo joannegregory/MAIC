@@ -170,36 +170,21 @@ diagnostics$Weight_profiles
 test <- boostrap_OR(intervention_data=intervention_data, comparator_data=comparator_input, matching = est_weights$matching_vars,
                     i=c(1:nrow(intervention_data)), model = 'Binary_event ~ ARM')
 
+# Bootstrap estimates
 OR_bootstraps <- boot(data = intervention_data, statistic = boostrap_OR, R=1000, comparator_data=comparator_input,
                       matching = est_weights$matching_vars, model = 'Binary_event ~ ARM')
 
-# Bootstrap estimates
-OR_boot_data <- as.data.frame(OR_bootstraps$t)
-colnames(OR_boot_data) <- colnames(t(as.data.frame(OR_bootstraps$t0)))
-head(OR_boot_data)
+# summarise bootstrap estimates
+hist(OR_bootstraps$t, main = "", xlab = "Boostrapped OR")
+abline(v= quantile(OR_bootstraps$t, probs = c(0.025,0.5,0.975)), lty=2)
 
-# summerise bootstrap estimates
-hist(OR_boot_data$OR, main = "",xlab = "Boostrapped OR")
-abline(v= quantile(OR_boot_data$OR, probs = c(0.025,0.5,0.975)), lty=2)
-
-OR.median <- quantile(OR_boot_data$OR, probs = c(0.5))
-
-OR.LCI <- quantile(OR_boot_data$OR, probs = c(0.025))
-OR.UCI <- quantile(OR_boot_data$OR, probs = c(0.975))
-paste0(OR.median, " (", OR.LCI, ",", OR.UCI, ")")
-
-# Normal CI
-boot.ci.OR <- boot.ci(boot.out = OR_bootstraps, index=1, type=c("norm")) # takes specific values
-boot.ci.RR <- boot.ci(boot.out = OR_bootstraps, index=2, type=c("norm")) # takes specific values
-
-# BCA CI
-boot.ci.OR.BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type=c("bca"))
-boot.ci.RR.BCA <- boot.ci(boot.out = OR_bootstraps, index=2, type=c("bca"))
-
-# Bootstrap CI function
+# Bootstrap CI function - Normal CI
+boot.ci.OR <- boot.ci(boot.out = OR_bootstraps, index=1, type="norm") # takes specific values
 boot.ci.OR$t0
 boot.ci.OR$normal[2:3]
 
+# Bootstrap CI function - BCA CI
+boot.ci.OR.BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type="bca")
 boot.ci.OR.BCA$t0
 boot.ci.OR.BCA$bca[4:5]
 
