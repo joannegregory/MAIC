@@ -163,11 +163,13 @@ diagnostics$Weight_profiles
 # Demonstrate functionality of the bootstrap_OR function
 # This function returns a single estimate of the odds ratio
 # This function is intended to be used in conjunction with the boot function, not called directly by the user
-test <- boostrap_OR(intervention_data=intervention_data, comparator_data=comparator_input, matching = est_weights$matching_vars,
+int <- filter(est_weights$analysis_data, ARM == 'Intervention')
+comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
+test <- boostrap_OR(intervention_data=int, comparator_data=comp, matching = est_weights$matching_vars,
                     i=c(1:nrow(intervention_data)), model = 'Binary_event ~ ARM')
 
 # Bootstrap estimates
-OR_bootstraps <- boot(data = intervention_data, statistic = boostrap_OR, R=1000, comparator_data=comparator_input,
+OR_bootstraps <- boot(data = int, statistic = boostrap_OR, R=1000, comparator_data=comp,
                       matching = est_weights$matching_vars, model = 'Binary_event ~ ARM')
 
 # summarise bootstrap estimates
