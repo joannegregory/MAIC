@@ -164,10 +164,14 @@ diagnostics$Weight_profiles
 #### Bootstrapping ------------------------------------------------
 # OR bootstraps-------------------------------------------------------------------------
 
-# for Richard - to show how the function works
-test <- boostrap_OR(intervention_data=intervention_data, i=c(1:nrow(intervention_data)), cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
+# Demonstrate functionality of the bootstrap_OR function
+# This function returns a single estimate of the odds ratio
+# This function is intended to be used in conjunction with the boot function, not called directly by the user
+test <- boostrap_OR(intervention_data=intervention_data, comparator_data=comparator_input, matching = est_weights$matching_vars,
+                    i=c(1:nrow(intervention_data)), model = 'Binary_event ~ ARM')
 
-OR_bootstraps <- boot(intervention_data, boostrap_OR, R=1000, cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
+OR_bootstraps <- boot(data = intervention_data, statistic = boostrap_OR, R=1000, comparator_data=comparator_input,
+                      matching = est_weights$matching_vars, model = 'Binary_event ~ ARM')
 
 # Bootstrap estimates
 OR_boot_data <- as.data.frame(OR_bootstraps$t)
@@ -176,7 +180,7 @@ head(OR_boot_data)
 
 # summerise bootstrap estimates
 hist(OR_boot_data$OR, main = "",xlab = "Boostrapped OR")
-abline(v= quantile(OR_boot_data$OR,probs = c(0.025,0.5,0.975)), lty=2)
+abline(v= quantile(OR_boot_data$OR, probs = c(0.025,0.5,0.975)), lty=2)
 
 OR.median <- quantile(OR_boot_data$OR, probs = c(0.5))
 
