@@ -70,7 +70,7 @@ boostrap_OR <- function(intervention_data, comparator_data, matching, i, model){
   bootstrap_data <- intervention_data[i,]
 
   # Estimates weights
-  perform_wt <- estimate_weights(intervention_data=bootstrap_data, matching_vars=cent_vars,  comparator_data=comparator_data)
+  perform_wt <- estimate_weights(intervention_data=bootstrap_data, matching_vars=matching,  comparator_data=comparator_data)
 
   # Perform logistic regression and extract the OR estimate
   logistic.regr <- suppressWarnings(glm(formula = model, family=binomial(link="logit"), data = perform_wt$analysis_data, weight = wt))

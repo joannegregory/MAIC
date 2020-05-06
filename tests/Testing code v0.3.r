@@ -156,10 +156,6 @@ diagnostics$Summary_of_weights
 diagnostics$Weight_profiles
 
 
-
-
-
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #### Bootstrapping ------------------------------------------------
 # OR bootstraps-------------------------------------------------------------------------
@@ -188,12 +184,8 @@ boot.ci.OR.BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type="bca")
 boot.ci.OR.BCA$t0
 boot.ci.OR.BCA$bca[4:5]
 
-
 # HR bootstraps -----------------------------------------------------------
-
-
-
-  # for Richard - to show how the function works
+# for Richard - to show how the function works
 test_HR <- boostrap_HR(intervention_data=intervention_data, i=c(1:nrow(intervention_data)), cent_vars = cent_match_cov, comparator_data=comparator_input)
 
 HR_bootstraps <- boot(intervention_data, boostrap_HR, R=1000, cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
