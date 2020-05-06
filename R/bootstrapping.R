@@ -21,19 +21,17 @@
 #' @seealso \code{\link{analysis_dataset}}, \code{\link{estimate_weights}}, \code{\link{HR_summary}}
 #' @export
 
-boostrap_HR <- function(intervention_data, i,  cent_vars, comparator_data, binary_var){
+boostrap_HR <- function(intervention_data, comparator_data, matching, i, model){
 
   # Samples the data
   bootstrap_data <- intervention_data[i,]
 
   # Estimates weights
-  perform_wt <- estimate_weights(intervention_data=bootstrap_data, matching_vars=cent_vars,  comparator_data=comparator_data)
+  perform_wt <- estimate_weights(intervention_data=bootstrap_data, matching_vars=matching, comparator_data=comparator_data)
 
   # survival data stat
-  cox_model <- coxph(Surv(Time, Event==1) ~ ARM, data = perform_wt$analysis_data, weights = wt)
+  cox_model <- coxph(model, data = perform_wt$analysis_data, weights = wt)
   HR <- exp(cox_model$coefficients)
-
-  c("HR"=HR)
 }
 
 
