@@ -156,93 +156,68 @@ diagnostics$Summary_of_weights
 diagnostics$Weight_profiles
 
 
-
-
-
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #### Bootstrapping ------------------------------------------------
 # OR bootstraps-------------------------------------------------------------------------
 
-# for Richard - to show how the function works
-test <- boostrap_OR(intervention_data=intervention_data, i=c(1:nrow(intervention_data)), cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
-
-OR_bootstraps <- boot(intervention_data, boostrap_OR, R=1000, cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
+# Demonstrate functionality of the bootstrap_OR function
+# This function returns a single estimate of the odds ratio
+# This function is intended to be used in conjunction with the boot function, not called directly by the user
+int <- filter(est_weights$analysis_data, ARM == 'Intervention')
+comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
+OR <- bootstrap_OR(intervention_data=int, comparator_data=comp, matching = est_weights$matching_vars,
+                  i=c(1:nrow(intervention_data)), model = 'Binary_event ~ ARM'
+                  )
 
 # Bootstrap estimates
-OR_boot_data <- as.data.frame(OR_bootstraps$t)
-colnames(OR_boot_data) <- colnames(t(as.data.frame(OR_bootstraps$t0)))
-head(OR_boot_data)
+OR_bootstraps <- boot(data = int, statistic = boostrap_OR, R=1000, comparator_data=comp,
+                      matching = est_weights$matching_vars, model = 'Binary_event ~ ARM'
+                      )
 
-# summerise bootstrap estimates
-hist(OR_boot_data$OR, main = "",xlab = "Boostrapped OR")
-abline(v= quantile(OR_boot_data$OR,probs = c(0.025,0.5,0.975)), lty=2)
+# summarise bootstrap estimates
+hist(OR_bootstraps$t, main = "", xlab = "Boostrapped OR")
+abline(v= quantile(OR_bootstraps$t, probs = c(0.025,0.5,0.975)), lty=2)
 
-OR.median <- quantile(OR_boot_data$OR, probs = c(0.5))
-
-OR.LCI <- quantile(OR_boot_data$OR, probs = c(0.025))
-OR.UCI <- quantile(OR_boot_data$OR, probs = c(0.975))
-paste0(OR.median, " (", OR.LCI, ",", OR.UCI, ")")
-
-# Normal CI
-boot.ci.OR <- boot.ci(boot.out = OR_bootstraps, index=1, type=c("norm")) # takes specific values
-boot.ci.RR <- boot.ci(boot.out = OR_bootstraps, index=2, type=c("norm")) # takes specific values
-
-# BCA CI
-boot.ci.OR.BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type=c("bca"))
-boot.ci.RR.BCA <- boot.ci(boot.out = OR_bootstraps, index=2, type=c("bca"))
-
-# Bootstrap CI function
+# Bootstrap CI function - Normal CI
+boot.ci.OR <- boot.ci(boot.out = OR_bootstraps, index=1, type="norm") # takes specific values
 boot.ci.OR$t0
 boot.ci.OR$normal[2:3]
 
+# Bootstrap CI function - BCA CI
+boot.ci.OR.BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type="bca")
 boot.ci.OR.BCA$t0
 boot.ci.OR.BCA$bca[4:5]
 
-
 # HR bootstraps -----------------------------------------------------------
+# Demonstrate functionality of the bootstrap_HR function
+# This function returns a single estimate of the hazard ratio
+# This function is intended to be used in conjunction with the boot function, not called directly by the user
+int <- filter(est_weights$analysis_data, ARM == 'Intervention')
+comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
+HR <- bootstrap_HR(intervention_data=int, comparator_data=comp, matching = est_weights$matching_vars,
+                  i=c(1:nrow(intervention_data)), model = Surv(Time, Event==1) ~ ARM
+                  )
 
+# Bootstrap estimates
+HR_bootstraps <- boot(data = int, statistic = boostrap_HR, R=1000, comparator_data=comp,
+                      matching = est_weights$matching_vars, model = Surv(Time, Event==1) ~ ARM
+                      )
 
+# Summarise bootstrap estimates
+hist(HR_bootstraps$t, main = "", xlab = "Boostrapped HR")
+abline(v= quantile(HR_bootstraps$t, probs = c(0.025, 0.5, 0.975)), lty=2)
 
-  # for Richard - to show how the function works
-test_HR <- boostrap_HR(intervention_data=intervention_data, i=c(1:nrow(intervention_data)), cent_vars = cent_match_cov, comparator_data=comparator_input)
+# Bootstrap CI function - Normal CI
+boot.ci.HR <- boot.ci(boot.out = HR_bootstraps, index=1, type="norm") # takes specific values
+boot.ci.HR$t0
+boot.ci.HR$normal[2:3]
 
-HR_bootstraps <- boot(intervention_data, boostrap_HR, R=1000, cent_vars = cent_match_cov, comparator_data=comparator_input, binary_var="Binary_event")
+# Bootstrap CI function - BCA CI
+boot.ci.HR.BCA <- boot.ci(boot.out = HR_bootstraps, index=1, type="bca")
+boot.ci.HR.BCA$t0
+boot.ci.HR.BCA$bca[4:5]
 
-  # Bootstrap estimates
-  HR_boot_data <- as.data.frame(HR_bootstraps$t)
-  colnames(HR_boot_data) <- colnames(t(as.data.frame(HR_bootstraps$t0)))
-  head(HR_boot_data)
-
-  # summerise bootstrap estimates
-  hist(HR_boot_data$HR, main = "",xlab = "Boostrapped HR")
-  abline(v= quantile(HR_boot_data$HR,probs = c(0.025,0.5,0.975)), lty=2)
-
-  HR.median <- quantile(HR_boot_data$HR, probs = c(0.5))
-
-  HR.LCI <- quantile(HR_boot_data$HR, probs = c(0.025))
-  HR.UCI <- quantile(HR_boot_data$HR, probs = c(0.975))
-  paste0(HR.median, " (", HR.LCI, ",", HR.UCI, ")")
-
-  # Normal CI
-  boot.ci.HR <- boot.ci(boot.out = HR_bootstraps, index=1, type=c("norm")) # takes specific values
-  boot.ci.RR <- boot.ci(boot.out = HR_bootstraps, index=2, type=c("norm")) # takes specific values
-  # BCA CI
-
-  boot.ci.HR.BCA <- boot.ci(boot.out = HR_bootstraps, index=1, type=c("bca"))
-  boot.ci.RR.BCA <- boot.ci(boot.out = HR_bootstraps, index=2, type=c("bca"))
-
-  # Bootstrap CI function
-  boot.ci.HR$t0
-  boot.ci.HR$normal[2:3]
-
-  boot.ci.HR.BCA$t0
-  boot.ci.HR.BCA$bca[4:5]
-
-
-
-
-# summaries ---------------------------------------------------------------
+# Summaries ---------------------------------------------------------------
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #### Baseline summaries ------------------------------------------------
