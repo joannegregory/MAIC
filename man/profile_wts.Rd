@@ -2,7 +2,7 @@
 % Please edit documentation in R/weights.R
 \name{profile_wts}
 \alias{profile_wts}
-\title{Produce a data frame of the weights assigned to alternative patient profiles HELP PAGE NEEDS UPDATING}
+\title{Produce a data frame of the weights assigned to alternative patient profiles}
 \usage{
 profile_wts(data, wt_col = "wt", wt_rs = "wt_rs", vars)
 }

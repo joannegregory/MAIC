@@ -104,7 +104,7 @@ estimate_weights <- function(intervention_data, comparator_data, matching_vars){
 
 # Functions for summarizing the weights ---------------------------------
 
-#' Estimate effective sample size HELP PAGE NEEDS UPDATING
+#' Estimate effective sample size
 #'
 #' Estimate the effective sample size (ESS).
 #'
@@ -129,7 +129,7 @@ estimate_ess <- function(data, wt_col="wt"){
 }
 
 
-#' Summarize the weight values HELP PAGE NEEDS UPDATING
+#' Summarize the weight values
 #'
 #' Produce a summary of the weights (minimum, maximum, median, mean, sd). Mean
 #' and standard deviation are provided for completeness. In practice the
@@ -159,7 +159,7 @@ summarize_wts <- function(data, wt_col="wt"){
 }
 
 
-#' Produce histograms of weights and rescaled weights HELP PAGE NEEDS UPDATING
+#' Produce histograms of weights and rescaled weights
 #'
 #' Produce a plot containing two histograms (one of the weights and one of the rescaled weights).
 #'
@@ -196,7 +196,7 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 }
 
 
-#' Produce a data frame of the weights assigned to alternative patient profiles HELP PAGE NEEDS UPDATING
+#' Produce a data frame of the weights assigned to alternative patient profiles
 #'
 #' Select the patient characteristics used in the matching and the MAIC weights
 #' and output a data frame of unique propensity weight values with the

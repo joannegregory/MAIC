@@ -2,7 +2,7 @@
 % Please edit documentation in R/weights.R
 \name{hist_wts}
 \alias{hist_wts}
-\title{Produce histograms of weights and rescaled weights HELP PAGE NEEDS UPDATING}
+\title{Produce histograms of weights and rescaled weights}
 \usage{
 hist_wts(data, wt_col = "wt", rs_wt_col = "wt_rs", bin = 30)
 }
@@ -23,7 +23,7 @@ weights. The default is wt_rs}
 A histogram plot of the weights and rescaled weights.
 }
 \description{
-Produce a plot containing two histograms (one of the weights and one of the recaled weights).
+Produce a plot containing two histograms (one of the weights and one of the rescaled weights).
 }
 \seealso{
 \code{\link{estimate_weights}}

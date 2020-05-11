@@ -2,7 +2,7 @@
 % Please edit documentation in R/weights.R
 \name{summarize_wts}
 \alias{summarize_wts}
-\title{Summarize the weight values HELP PAGE NEEDS UPDATING}
+\title{Summarize the weight values}
 \usage{
 summarize_wts(data, wt_col = "wt")
 }
@@ -16,7 +16,7 @@ intervention individual patient data and the MAIC propensity weights. The
 default is wt.}
 }
 \value{
-A data frame that inlcudes a summary (minimum, maximum, median, mean) of the weights.
+A data frame that includes a summary (minimum, maximum, median, mean) of the weights.
 }
 \description{
 Produce a summary of the weights (minimum, maximum, median, mean, sd). Mean

@@ -2,7 +2,7 @@
 % Please edit documentation in R/weights.R
 \name{estimate_ess}
 \alias{estimate_ess}
-\title{Estimate effective sample size HELP PAGE NEEDS UPDATING}
+\title{Estimate effective sample size}
 \usage{
 estimate_ess(data, wt_col = "wt")
 }
