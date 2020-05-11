@@ -180,7 +180,7 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 
   wt_data <- data %>%
     dplyr::select(c(wt_col, rs_wt_col)) %>% # select only the weights and rescaled weights
-    rename("Weights" = wt_col, "Rescaled weights" = rs_wt_col) %>% # rename so for plots
+    dplyr::rename("Weights" = wt_col, "Rescaled weights" = rs_wt_col) %>% # rename so for plots
     gather() # weights and rescaled weights in one column for plotting
 
 

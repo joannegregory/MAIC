@@ -21,7 +21,7 @@
 #' @seealso \code{\link{analysis_dataset}}, \code{\link{estimate_weights}}, \code{\link{HR_summary}}
 #' @export
 
-bootstrap_HR <- function(intervention_data, comparator_data, matching, i){
+bootstrap_HR <- function(intervention_data, comparator_data, matching, i, Time=Time, Event=Event){
 
   # Samples the data
   bootstrap_data <- intervention_data[i,]

@@ -7,26 +7,20 @@
 bootstrap_HR(intervention_data, comparator_data, matching, i, model)
 }
 \arguments{
-\item{analysis_data}{A data frame containing data with weights (derived from
-\code{\link{analysis_dataset}}).}
+\item{intervention_data}{A data frame containing data with weights (derived from
+\code{\link{est_weights}}).}
 
-\item{n_sim}{Number of simulations. Default = 1000.}
+\item{model}{A model formula in the form 'surv(Time ~ Event)'.
+Variable names need to match the corresponding columns in intervention_data}
 }
 \value{
-A data frame of n_sim bootstrapped HR values.
+A HR value.
 }
 \description{
 Bootstrapping of the hazard ratio to capture the uncertainty in the
 estimation of MAIC propensity weights using the following general process:
-\enumerate{
-   \item Sample patients with replacement from the intervention study
-   \item Estimate propensity weights for the current sample of patients
-   \item Calculate a weighted hazard ratio
-   \item Repeat the steps above N times. Approx. 1000 simulations are usually
-   sufficient
-}
 bootstrapped samples
 }
 \seealso{
-\code{\link{analysis_dataset}}, \code{\link{estimate_weights}}, \code{\link{HR_summary}}
+\code{\link{analysis_dataset}}, \code{\link{estimate_weights}},
 }

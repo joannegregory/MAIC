@@ -166,8 +166,10 @@ diagnostics$Weight_profiles
 int <- filter(est_weights$analysis_data, ARM == 'Intervention')
 comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
 OR <- bootstrap_OR(intervention_data=int, comparator_data=comp, matching = est_weights$matching_vars,
-                  i=c(1:nrow(intervention_data)), model = 'Binary_event ~ ARM'
-                  )
+                  i=c(1:nrow(intervention_data)), model = 'Binary_event ~ ARM')
+
+
+
 
 # Bootstrap estimates
 OR_bootstraps <- boot(data = int, statistic = boostrap_OR, R=1000, comparator_data=comp,
@@ -192,14 +194,12 @@ boot.ci.OR.BCA$bca[4:5]
 # Demonstrate functionality of the bootstrap_HR function
 # This function returns a single estimate of the hazard ratio
 # This function is intended to be used in conjunction with the boot function, not called directly by the user
-int <- filter(est_weights$analysis_data, ARM == 'Intervention')
-comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
 HR <- bootstrap_HR(intervention_data=int, comparator_data=comp, matching = est_weights$matching_vars,
                   i=c(1:nrow(intervention_data)), model = Surv(Time, Event==1) ~ ARM
                   )
 
 # Bootstrap estimates
-HR_bootstraps <- boot(data = int, statistic = boostrap_HR, R=1000, comparator_data=comp,
+HR_bootstraps <- boot(data = int, statistic = bootstrap_HR, R=1000, comparator_data=comp,
                       matching = est_weights$matching_vars, model = Surv(Time, Event==1) ~ ARM
                       )
 
