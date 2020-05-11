@@ -113,5 +113,5 @@ bootstrap_RR <- function(intervention_data, comparator_data, matching, i, model)
   # Perform logistic regression and extract the RR estimate
   poisson_regr <- suppressWarnings(glm(formula = Binary_event~ARM, family=poisson(link="log"), data = perform_wt$analysis_data, weight = wt))
   RR <- exp(as.numeric(coef(poisson_regr)[2]))
-  }
+}
 
