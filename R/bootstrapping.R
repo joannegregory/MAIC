@@ -21,7 +21,7 @@
 #' @seealso \code{\link{analysis_dataset}}, \code{\link{estimate_weights}}, \code{\link{HR_summary}}
 #' @export
 
-bootstrap_HR <- function(intervention_data, comparator_data, matching, i, model){
+bootstrap_HR <- function(intervention_data, comparator_data, matching, i){
 
   # Samples the data
   bootstrap_data <- intervention_data[i,]
@@ -55,14 +55,14 @@ bootstrap_HR <- function(intervention_data, comparator_data, matching, i, model)
 #' @param comparator_data
 #' @param matching
 #' @param i
-#' @param model A model formula in the form 'endpoint ~ treatment_var'.
+#' @param endpoint The variable name for the binary endpoint.
 #'   Variable names need to match the corresponding columns in intervention_data
 #'
 #' @return A data frame of n_sim bootstrapped OR values.
 #'
 #' @seealso \code{\link{analysis_dataset}}, \code{\link{estimate_weights}}, \code{\link{OR_summary}}
 #' @export
-bootstrap_OR <- function(intervention_data, comparator_data, matching, i, model){
+bootstrap_OR <- function(intervention_data, comparator_data, matching, i, endpoint){
 
   # Samples the data
   bootstrap_data <- intervention_data[i,]
@@ -71,7 +71,7 @@ bootstrap_OR <- function(intervention_data, comparator_data, matching, i, model)
   perform_wt <- estimate_weights(intervention_data=bootstrap_data, matching_vars=matching,  comparator_data=comparator_data)
 
   # Perform logistic regression and extract the OR estimate
-  logistic.regr <- suppressWarnings(glm(formula = Binary_event~ARM, family=binomial(link="logit"), data = perform_wt$analysis_data, weight = wt))
+  logistic.regr <- suppressWarnings(glm(formula = endpoint~ARM, family=binomial(link="logit"), data = perform_wt$analysis_data, weight = wt))
   OR <- exp(as.numeric(coef(logistic.regr)[2]))
 }
 
@@ -95,14 +95,14 @@ bootstrap_OR <- function(intervention_data, comparator_data, matching, i, model)
 #' @param comparator_data
 #' @param matching
 #' @param i
-#' @param model A model formula in the form 'endpoint ~ treatment_var'.
+#' @param endpoint The variable name for the binary endpoint.
 #'   Variable names need to match the corresponding columns in intervention_data
 #'
 #' @return A data frame of n_sim bootstrapped OR values.
 #'
 #' @seealso \code{\link{analysis_dataset}}, \code{\link{estimate_weights}}, \code{\link{OR_summary}}
 #' @export
-bootstrap_RR <- function(intervention_data, comparator_data, matching, i, model){
+bootstrap_RR <- function(intervention_data, comparator_data, matching, i, endpoint){
 
   # Samples the data
   bootstrap_data <- intervention_data[i,]
@@ -111,7 +111,7 @@ bootstrap_RR <- function(intervention_data, comparator_data, matching, i, model)
   perform_wt <- estimate_weights(intervention_data=bootstrap_data, matching_vars=matching,  comparator_data=comparator_data)
 
   # Perform logistic regression and extract the RR estimate
-  poisson_regr <- suppressWarnings(glm(formula = Binary_event~ARM, family=poisson(link="log"), data = perform_wt$analysis_data, weight = wt))
+  poisson_regr <- suppressWarnings(glm(formula = endpoint~ARM, family=poisson(link="log"), data = perform_wt$analysis_data, weight = wt))
   RR <- exp(as.numeric(coef(poisson_regr)[2]))
 }
 
