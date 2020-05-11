@@ -2,25 +2,33 @@
 % Please edit documentation in R/bootstrapping.R
 \name{bootstrap_HR}
 \alias{bootstrap_HR}
-\title{Bootstrapping for MAIC propensity weighted hazard ratios HELP PAGE NEEDS UPDATING}
+\title{Bootstrapping for MAIC weighted hazard ratios}
 \usage{
 bootstrap_HR(intervention_data, comparator_data, matching, i, model)
 }
 \arguments{
 \item{intervention_data}{A data frame containing data with weights (derived from
-\code{\link{est_weights}}).}
+\code{\link{estimate_weights}}).}
 
-\item{model}{A model formula in the form 'surv(Time ~ Event)'.
+\item{comparator_data}{A data frame containing pseudo individual patient data from the comparator study.
+The outcome variables names must match intervention_data.}
+
+\item{matching}{A character vector giving the names of the covariates to use
+in matching. These names must match the column names in intervention_data
+and comparator_data.}
+
+\item{i}{index used to select a sample within \code{\link{boot}}.}
+
+\item{model}{A model formula in the form 'Surv(Time, Event==1) ~ ARM'.
 Variable names need to match the corresponding columns in intervention_data}
 }
 \value{
-A HR value.
+The HR as a numeric value.
 }
 \description{
-Bootstrapping of the hazard ratio to capture the uncertainty in the
-estimation of MAIC propensity weights using the following general process:
-bootstrapped samples
+A function required for the "statistic" argument in the \code{\link{boot}} function.
+Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted hazard ratio.
 }
 \seealso{
-\code{\link{analysis_dataset}}, \code{\link{estimate_weights}},
+\code{\link{estimate_weights}}, \code{\link{boot}}
 }

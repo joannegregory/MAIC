@@ -14,22 +14,23 @@ gradfn <- function(a1, X){
 
 # External functions ------------------------------------------------------
 
-#' Estimate MAIC propensity weights HELP PAGE NEEDS UPDATING TEST
+#' Estimate MAIC propensity weights
 #'
 #' Estimate propensity weights for matched-adjusted indirect comparison (MAIC)
 #'
 #' @param intervention_data A data frame containing individual patient data from the intervention study.
-#' @param baseline_comparator  A data frame of average covariate values from the comparator study.
+#' @param comparator_data  A data frame containing pseudo individual patient data from the comparator study.
+#'  The outcome variables names must match intervention_data.
 #' @param matching_vars A character vector giving the names of the covariates to use
 #'   in matching. These names must match the column names in intervention_data
-#'   and baseline_comparator.
+#'   and comparator_data.
 #' @param ... Additional arguments to be passed to optimisation functions such
 #'   as the method for maximum likelihood optimisation. The default is method =
 #'   "BFGS". Refer to \code{\link[stats]{optim}} for options.
 #'
-#' @return A list containing 2 objects. First, a data frame named intervention_wts_data including the intervention data
-#'   with additional columns named WT (weights) and WT_RS (rescaled weights). Second, a vector of the matching variables names used.
-#'
+#' @return A list containing 2 objects. First, a data frame named analysis_data containing intervention_data and comparator_data
+#'   with additional columns named wt (weights) and wt_rs (rescaled weights) where the weights are 1 for the comparator data.
+#'   Second, a vector called matching_vars of the matching variables names used.
 #' @references NICE DSU TECHNICAL SUPPORT DOCUMENT 18: METHODS FOR
 #'   POPULATION-ADJUSTED INDIRECT COMPARISONS IN SUBMSISSIONS TO NICE, REPORT BY
 #'   THE DECISION SUPPORT UNIT, December 2016
@@ -90,8 +91,8 @@ estimate_weights <- function(intervention_data, comparator_data, matching_vars){
 
   # Outputs are:
   #       - the analysis data (intervention PLD, weights and comparator pseudo PLD)
-  #       - A charcacter vector with the name of the centered matching variables
-  #       - A charcacter vector with the name of the matching variables
+  #       - A character  vector with the name of the centered matching variables
+  #       - A character  vector with the name of the matching variables
   output <- list(
     matching_vars = matching_vars,
     analysis_data = all_data
@@ -107,12 +108,12 @@ estimate_weights <- function(intervention_data, comparator_data, matching_vars){
 #'
 #' Estimate the effective sample size (ESS).
 #'
-#' @param intervention_wts A data frame containing individual patient data from
+#' @param data A data frame containing individual patient data from
 #'   the intervention study, including a column containing the weights (derived
-#'   using estimate_weights).
+#'   using \code{\link{estimate_weights}}).
 #' @param wt_col The name of the weights column in the data frame containing the
 #'   intervention individual patient data and the MAIC propensity weights. The
-#'   default is WT.
+#'   default is wt.
 #'
 #' @return The effective sample size (ESS) as a numeric value.
 #'
@@ -122,8 +123,8 @@ estimate_weights <- function(intervention_data, comparator_data, matching_vars){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-estimate_ess <- function(data, wt="wt"){
-  ess <- sum(data[,wt])^2/sum(data[,wt]^2)
+estimate_ess <- function(data, wt_col="wt"){
+  ess <- sum(data[,wt_col])^2/sum(data[,wt_col]^2)
   return(ess)
 }
 
@@ -135,24 +136,24 @@ estimate_ess <- function(data, wt="wt"){
 #' distribution of weights may be skewed in which case mean and sd should be
 #' interpreted with caution
 #'
-#' @param intervention_wts A data frame containing individual patient data from
+#' @param data A data frame containing individual patient data from
 #'   the intervention study, including a column containing the weights (derived
-#'   using estimate_weights).
+#'   using \code{\link{estimate_weights}}).
 #' @param wt_col The name of the weights column in the data frame containing the
 #'   intervention individual patient data and the MAIC propensity weights. The
-#'   default is WT.
+#'   default is wt.
 #'
-#' @return A data frame that inlcudes a summary (minimum, maximum, median, mean) of the weights.
+#' @return A data frame that includes a summary (minimum, maximum, median, mean) of the weights.
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-summarize_wts <- function(data, wt="wt"){
+summarize_wts <- function(data, wt_col="wt"){
   summary <- data.frame(
-    mean = mean(data[,wt]),
-    sd = sd(data[,wt]),
-    median = median(data[,wt]),
-    min = min(data[,wt]),
-    max = max(data[,wt])
+    mean = mean(data[,wt_col]),
+    sd = sd(data[,wt_col]),
+    median = median(data[,wt_col]),
+    min = min(data[,wt_col]),
+    max = max(data[,wt_col])
   )
   return(summary)
 }
@@ -160,17 +161,17 @@ summarize_wts <- function(data, wt="wt"){
 
 #' Produce histograms of weights and rescaled weights HELP PAGE NEEDS UPDATING
 #'
-#' Produce a plot containing two histograms (one of the weights and one of the recaled weights).
+#' Produce a plot containing two histograms (one of the weights and one of the rescaled weights).
 #'
-#' @param intervention_wts A data frame containing individual patient data from
+#' @param data A data frame containing individual patient data from
 #'   the intervention study, including a column containing the weights (derived
-#'   using estimate_weights).
+#'   using \code{\link{estimate_weights}}).
 #' @param wt_col The name of the weights column in the data frame containing the
 #'   intervention individual patient data and the MAIC propensity weights. The
-#'   default is WT.
+#'   default is wt.
 #' @param rs_wt_col The name of the rescaled weights column in the data frame
 #'   containing the intervention individual patient data and the MAIC propensity
-#'   weights. The default is WT_RS.
+#'   weights. The default is wt_rs
 #'
 #' @return A histogram plot of the weights and rescaled weights.
 #'
@@ -181,14 +182,14 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
   wt_data <- data %>%
     dplyr::select(c(wt_col, rs_wt_col)) %>% # select only the weights and rescaled weights
     dplyr::rename("Weights" = wt_col, "Rescaled weights" = rs_wt_col) %>% # rename so for plots
-    gather() # weights and rescaled weights in one column for plotting
+    tidyr::gather() # weights and rescaled weights in one column for plotting
 
 
-  hist_plot <- ggplot2::ggplot(wt_data) + ggplot2::geom_histogram(aes(value), bins = bin) +
+  hist_plot <- ggplot2::ggplot(wt_data) + ggplot2::geom_histogram(ggplot2::aes(value), bins = bin) +
     ggplot2::facet_wrap(~key,  ncol=1) + # gives the two plots (one on top of the other)
     ggplot2::theme_bw()+
-    ggplot2::theme(axis.title = element_text(size = 16),
-                   axis.text = element_text(size = 16)) +
+    ggplot2::theme(axis.title = ggplot2::element_text(size = 16),
+                   axis.text = ggplot2::element_text(size = 16)) +
     ggplot2::ylab("Frequency")
 
   return(hist_plot)
@@ -206,45 +207,41 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 #' useful when only matching on binary variables as there are fewer unique
 #' values.
 #'
-#' @param intervention_wts A data frame containing individual patient data from
+#' @param data A data frame containing individual patient data from
 #'   the intervention study, including a column containing the weights (derived
-#'   using estimate_weights).
+#'   using \code{\link{estimate_weights}}).
 #' @param wt_col The name of the weights column in the data frame containing the
 #'   intervention individual patient data and the MAIC propensity weights. The
-#'   default is WT.
+#'   default is wt.
 #' @param rs_wt_col The name of the rescaled weights column in the data frame
 #'   containing the intervention individual patient data and the MAIC propensity
-#'   weights. The default is WT_RS.
-#' @param matching_vars A character vector giving the names of the covariates to
-#'   use in matching. These names must match the column names in
-#'   intervention_data and baseline_comparator.
+#'   weights. The default is wt_rs
+#' @param vars A character vector giving the variable names of the baseline characteristics. These names must match the column names in
+#'   data.
 #'
 #' @return A data frame that includes a summary of patient characteristics
-#'   associated with alternative weight values.
+#'   associated with alternative weight values ordered by ascending wt_col.
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-profile_wts <- function(data, wt="wt", wt_rs="wt_rs", vars){
+profile_wts <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
   profile_data <-  data %>%
-    select(vars, wt, wt_rs)
+    dplyr::select(vars, wt_col, wt_rs)
 
   profile_wts <- profile_data %>%
-    distinct() %>%
-    arrange(wt)
+    dplyr::distinct()
 
   return(profile_wts)
 }
 
-#' Weight diagnostics HELP PAGE NEEDS UPDATING
+#' Weight diagnostics
 #'
 #' Produce a set of useful diagnostic metrics to summarize propensity weights
 #' \itemize{
-#'   \item ESS
-#'   \item Summary statistics of the weights: minimum, maximum, median, mean, sd
-#'   \item Patient profile associated with given weight values
+#'   \item ESS (\code{\link{estimate_ess}})
+#'   \item Summary statistics of the weights: minimum, maximum, median, mean, sd (\code{\link{summarize_wts}})
+#'   \item Patient profile associated with given weight values (\code{\link{profile_wts}})
 #' }
-#'
-#' This function calls each of estimate_ess, summarize_wts and profile_wts in turn.
 #'
 #' @param intervention_wts A data frame containing individual patient data from
 #'   the intervention study, including a column containing the weights (derived
@@ -252,26 +249,27 @@ profile_wts <- function(data, wt="wt", wt_rs="wt_rs", vars){
 #' @param wt_col The name of the weights column in the data frame containing the
 #'   intervention individual patient data and the MAIC propensity weights. The
 #'   default is WT.
-#' @param rs_wt_col The name of the rescaled weights column in the data frame
-#'   containing the intervention individual patient data and the MAIC propensity
 #'   weights. The default is WT_RS.
-#' @param matching_vars A character vector giving the names of the covariates to
-#'   use in matching.
+#'  @param rs_wt_col The name of the rescaled weights column in the data frame
+#'   containing the intervention individual patient data and the MAIC propensity
+#'   weights. The default is wt_rs
+#' @param vars A character vector giving the variable names of the baseline characteristics. These names must match the column names in
+#'   data.
 #'
 #' @return A list of data frames to use for weight diagnostics.
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{estimate_ess}}, \code{\link{summarize_wts}}, \code{\link{profile_wts}}
 #' @export
-wt_diagnostics <- function(data, matching_vars, wt="wt"){
+wt_diagnostics <- function(data, wt_col="wt", wt_rs="wt_rs",vars){
 
   # ESS
-  ESS <- estimate_ess(data)
+  ESS <- estimate_ess(data, wt_col)
 
   # Summary
-  summ_wts <- summarize_wts(data)
+  summ_wts <- summarize_wts(data, wt_col)
 
   # Weight profiles
-  profile <- profile_wts(data, vars=matching_vars)
+  profile <- profile_wts(data, wt_col, wt_rs, vars)
 
   output <- list("ESS" = ESS,
                  "Summary_of_weights" = summ_wts,

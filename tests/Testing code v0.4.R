@@ -13,7 +13,7 @@ library(dplyr)
 # library(tidyr)
 library(boot)
 # library(survminer)
-# library(survival)
+library(survival)
 library(MAIC)
 
 
@@ -67,7 +67,6 @@ target_pop <- read.csv(file.path(data_path,"Aggregate data.csv"))
 target_pop
 
 
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Center baseline characteristics -----------------
 
@@ -95,6 +94,21 @@ match_cov <- c("AGE",
                "SEX",
                "SMOKE",
                "ECOG0")
+
+# Renames target population cols to match match_cov
+match_cov
+names(target_pop)
+target_pop_standard <- target_pop %>%
+  #EDIT
+  dplyr::rename(N=N,
+                Treatment="ARM",
+                AGE=age.mean,
+                SEX=prop.male,
+                SMOKE=prop.smoke,
+                ECOG0=prop.ecog0
+  ) %>%
+  dplyr::select(N, Treatment, match_cov)
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #  estimate weights, rescaled weights  -----------------
@@ -156,6 +170,41 @@ diagnostics$Weight_profiles
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#### Baseline summaries ------------------------------------------------
+
+# To be included in the vignette, not as a function in the package
+
+# Set weighted and unweighted intervention data
+baseline_analysis_data <- est_weights$analysis_data %>% filter(ARM=="Intervention") %>% dplyr::mutate(Treatment=paste0(ARM, "_matched")) %>%
+  rbind(est_weights$analysis_data %>% filter(ARM=="Intervention")%>% mutate(Treatment=paste0(ARM, "_unadjusted"), wt = 1, wt_rs = 1)) %>%
+  select(Treatment, match_cov, wt, wt_rs)
+
+# Summerises the baseline characteristics
+Baseline_summary <- baseline_analysis_data %>%
+  dplyr::group_by(Treatment) %>%
+  dplyr::summarise_each(list(~ weighted.mean(., wt)),-c(wt,wt_rs)) %>%
+  rbind(target_pop_standard  %>% select(Treatment, match_cov) )
+
+Baseline_summary_n <- baseline_analysis_data %>%
+  dplyr::group_by(Treatment) %>%
+  dplyr::summarise(
+    'N' = n()) %>%
+  rbind(target_pop_standard  %>% select(N, Treatment)) %>%
+  dplyr::rename(`N/ESS`=N)
+
+
+Baseline_summary_all <- dplyr::full_join(Baseline_summary_n, Baseline_summary, by="Treatment")
+
+Baseline_summary <- cbind(Baseline_summary_all %>% select(-c(match_cov)),
+                          lapply(Baseline_summary_all %>% select(match_cov), sprintf, fmt = "%.2f") %>% as.data.frame())
+
+
+# replace N with ESS
+Baseline_summary$`N/ESS`[Baseline_summary$Treatment == "Intervention_unadjusted"] <- ESS
+Baseline_summary
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #### Bootstrapping ------------------------------------------------
 # OR bootstraps-------------------------------------------------------------------------
 
@@ -179,15 +228,31 @@ OR_bootstraps <- boot(data = int, statistic = bootstrap_OR, R=1000, comparator_d
 hist(OR_bootstraps$t, main = "", xlab = "Boostrapped OR")
 abline(v= quantile(OR_bootstraps$t, probs = c(0.025,0.5,0.975)), lty=2)
 
+OR_median <- median(OR_bootstraps$t)
+
 # Bootstrap CI function - Normal CI
-boot.ci.OR <- boot.ci(boot.out = OR_bootstraps, index=1, type="norm") # takes specific values
-boot.ci.OR$t0
-boot.ci.OR$normal[2:3]
+boot_ci_OR <- boot.ci(boot.out = OR_bootstraps, index=1, type="norm") # takes specific values
 
 # Bootstrap CI function - BCA CI
-boot.ci.OR.BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type="bca")
-boot.ci.OR.BCA$t0
-boot.ci.OR.BCA$bca[4:5]
+boot_ci_OR_BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type="bca")
+
+# ORs
+unweighted_OR <- suppressWarnings(glm(Binary_event~ARM, family=binomial(link="logit"), data = est_weights$analysis_data))
+weighted_OR <- suppressWarnings(glm(Binary_event~ARM, family=binomial(link="logit"), data = est_weights$analysis_data, weight = wt))
+
+
+OR_summ <- rbind(exp(cbind("Odds ratio" = coef(unweighted_OR), confint.default(unweighted_OR, level = 0.95)))[2,],
+                 exp(cbind("Odds ratio" = coef(weighted_OR), confint.default(weighted_OR, level = 0.95)))[2,]) %>%
+  as.data.frame() %>%
+  dplyr::rename(OR = `Odds ratio`, OR_low_CI = `2.5 %`, OR_upp_CI = `97.5 %`) %>%
+  mutate(Method = c("Unadjusted", "Weighted")) %>%
+  rbind(data.frame("OR" = OR_median, "OR_low_CI" = boot_ci_OR$normal[2], "OR_upp_CI" = boot_ci_OR$normal[3], "Method"="Normal bootstrap")) %>%
+  rbind(data.frame("OR" = OR_median, "OR_low_CI" = boot_ci_OR_BCA$bca[4], "OR_upp_CI" = boot_ci_OR_BCA$bca[5], "Method"="BCA bootstrap")) %>%
+  dplyr::mutate(OR_95_CI = paste0(sprintf('%.3f', OR), " (", sprintf('%.3f', OR_low_CI), ", ", sprintf('%.3f', OR_upp_CI), ")")) %>%
+  dplyr::select(Method, OR_95_CI)
+OR_summ
+
+
 
 # HR bootstraps -----------------------------------------------------------
 # Demonstrate functionality of the bootstrap_HR function
@@ -206,91 +271,36 @@ HR_bootstraps <- boot(data = int, statistic = bootstrap_HR, R=1000, comparator_d
 hist(HR_bootstraps$t, main = "", xlab = "Boostrapped HR")
 abline(v= quantile(HR_bootstraps$t, probs = c(0.025, 0.5, 0.975)), lty=2)
 
+HR_median <- median(HR_bootstraps$t)
 # Bootstrap CI function - Normal CI
-boot.ci.HR <- boot.ci(boot.out = HR_bootstraps, index=1, type="norm") # takes specific values
-boot.ci.HR$t0
-boot.ci.HR$normal[2:3]
+boot_ci_HR <- boot.ci(boot.out = HR_bootstraps, index=1, type="norm") # takes specific values
 
- # Bootstrap CI function - BCA CI
-boot.ci.HR.BCA <- boot.ci(boot.out = HR_bootstraps, index=1, type="bca")
-boot.ci.HR.BCA$t0
-boot.ci.HR.BCA$bca[4:5]
-
-# Summaries ---------------------------------------------------------------
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#### Baseline summaries ------------------------------------------------
-
-# To be included in the vignette, not as a function in the package
-
-# Set weighted and unweighted intervention data
-baseline_analysis_data <- est_weights$analysis_data %>% filter(ARM=="Intervention") %>% dplyr::mutate(Treatment=paste0(ARM, "_matched")) %>%
-  rbind(est_weights$analysis_data %>% filter(ARM=="Intervention")%>% mutate(Treatment=paste0(ARM, "_unadjusted"), wt = 1, wt_rs = 1)) %>%
-  select(Treatment, match_cov, wt, wt_rs)
-
-# Renames target population cols to match match_cov
-match_cov
-names(target_pop)
-target_pop_standard <- target_pop %>%
-  #EDIT
-  dplyr::rename(N=N,
-         Treatment="ARM",
-         AGE=age.mean,
-         SEX=prop.male,
-         SMOKE=prop.smoke,
-         ECOG0=prop.ecog0
-  ) %>%
-  dplyr::select(N, Treatment, match_cov)
-
-# Summerises the baseline characteristics
-Baseline_summary <- baseline_analysis_data %>%
-  dplyr::group_by(Treatment) %>%
-  dplyr::summarise_each(list(~ weighted.mean(., wt)),-c(wt,wt_rs)) %>%
-  rbind(target_pop_standard  %>% select(Treatment, match_cov) )
-
-Baseline_summary_n <- baseline_analysis_data %>%
-  dplyr::group_by(Treatment) %>%
-  dplyr::summarise(
-    'N' = n()) %>%
-  rbind(target_pop_standard  %>% select(N, Treatment)) %>%
-  dplyr::rename(`N/ESS`=N)
-
-
-Baseline_summary_all <- dplyr::full_join(Baseline_summary_n, Baseline_summary, by="Treatment")
-
-Baseline_summary <- cbind(Baseline_summary_all %>% select(-c(match_cov)),
-                               lapply(Baseline_summary_all %>% select(match_cov), sprintf, fmt = "%.2f") %>% as.data.frame())
-
-
-# replace N with ESS
-Baseline_summary$`N/ESS`[Baseline_summary$Treatment == "Intervention_unadjusted"] <- ESS
-Baseline_summary
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#### Survival summaries ------------------------------------------------
+# Bootstrap CI function - BCA CI
+boot_ci_HR_BCA <- boot.ci(boot.out = HR_bootstraps, index=1, type="bca")
 
 
 ## HRs
-unweighted.cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_data)
-weighted.cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_data, weights = wt)
+unweighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_data)
+weighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_data, weights = wt)
 
 
-cox.summ <- rbind(summary(unweighted.cox)$conf.int, summary(weighted.cox)$conf.int) %>%
+HR_summ <- rbind(summary(unweighted_cox)$conf.int, summary(weighted_cox)$conf.int) %>%
   as.data.frame() %>%
   dplyr::select(-`exp(-coef)`) %>% #drop unnecessary column
-  dplyr::rename(HR = `exp(coef)`, HR.low.CI = `lower .95`, HR.upp.CI = `upper .95`) %>%
+  dplyr::rename(HR = `exp(coef)`, HR_low_CI = `lower .95`, HR_upp_CI = `upper .95`) %>%
   mutate(Method = c("Unadjusted", "Cox weighted")) %>%
-  rbind(data.frame("HR" = HR.median, "HR.low.CI" = boot.ci.HR$normal[2], "HR.upp.CI" = boot.ci.HR$normal[3], "Method"="Normal bootstrap")) %>%
-  rbind(data.frame("HR" = HR.median, "HR.low.CI" = boot.ci.HR.BCA$bca[4], "HR.upp.CI" = boot.ci.HR.BCA$bca[5], "Method"="BCA bootstrap")) %>%
-  dplyr::mutate(HR.95.CI = paste0(sprintf('%.3f', HR), " (", sprintf('%.3f', HR.low.CI), ", ", sprintf('%.3f', HR.upp.CI), ")")) %>%
-  dplyr::select(Method, HR.95.CI)
-cox.summ
+  rbind(data.frame("HR" = HR_median, "HR_low_CI" = boot_ci_HR$normal[2], "HR_upp_CI" = boot_ci_HR$normal[3], "Method"="Normal bootstrap")) %>%
+  rbind(data.frame("HR" = HR_median, "HR_low_CI" = boot_ci_HR_BCA$bca[4], "HR_upp_CI" = boot_ci_HR_BCA$bca[5], "Method"="BCA bootstrap")) %>%
+  dplyr::mutate(HR_95_CI = paste0(sprintf('%.3f', HR), " (", sprintf('%.3f', HR_low_CI), ", ", sprintf('%.3f', HR_upp_CI), ")")) %>%
+  dplyr::select(Method, HR_95_CI)
+HR_summ
+
+
+
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #### Binary summaries ------------------------------------------------
 
-logistic.regr_OR <- suppressWarnings(glm(Binary_event~ARM, family=binomial(link="logit"), data = est_weights$analysis_data, weight = wt))
-exp(as.numeric(coef(logistic.regr_OR)[2]))
-summary(logistic.regr_OR)
+
 

@@ -7,17 +7,17 @@
 hist_wts(data, wt_col = "wt", rs_wt_col = "wt_rs", bin = 30)
 }
 \arguments{
+\item{data}{A data frame containing individual patient data from
+the intervention study, including a column containing the weights (derived
+using \code{\link{estimate_weights}}).}
+
 \item{wt_col}{The name of the weights column in the data frame containing the
 intervention individual patient data and the MAIC propensity weights. The
-default is WT.}
+default is wt.}
 
 \item{rs_wt_col}{The name of the rescaled weights column in the data frame
 containing the intervention individual patient data and the MAIC propensity
-weights. The default is WT_RS.}
-
-\item{intervention_wts}{A data frame containing individual patient data from
-the intervention study, including a column containing the weights (derived
-using estimate_weights).}
+weights. The default is wt_rs}
 }
 \value{
 A histogram plot of the weights and rescaled weights.

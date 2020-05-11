@@ -2,30 +2,33 @@
 % Please edit documentation in R/bootstrapping.R
 \name{bootstrap_OR}
 \alias{bootstrap_OR}
-\title{Bootstrapping for MAIC propensity weighted odds ratios HELP PAGE NEEDS UPDATING}
+\title{Bootstrapping for MAIC weighted odds ratios}
 \usage{
 bootstrap_OR(intervention_data, comparator_data, matching, i, model)
 }
 \arguments{
+\item{intervention_data}{A data frame containing data with weights (derived from
+\code{\link{estimate_weights}}).}
+
+\item{comparator_data}{A data frame containing pseudo individual patient data from the comparator study.
+The outcome variables names must match intervention_data.}
+
+\item{matching}{A character vector giving the names of the covariates to use
+in matching. These names must match the column names in intervention_data
+and comparator_data.}
+
+\item{i}{index used to select a sample within \code{\link{boot}}.}
+
 \item{model}{A model formula in the form 'endpoint ~ treatment_var'.
 Variable names need to match the corresponding columns in intervention_data}
 }
 \value{
-A data frame of n_sim bootstrapped OR values.
+The OR as a numeric value.
 }
 \description{
-Bootstrapping of the odds ratio to capture the uncertainty in the
-estimation of MAIC propensity weights using the following general process:
-\enumerate{
-   \item Sample patients with replacement from the intervention study
-   \item Estimate propensity weights for the current sample of patients
-   \item Calculate a weighted odds ratio
-   \item Repeat the steps above N times. Approx. 1000 simulations are usually
-   sufficient
-}
-Refer to \code{\link{OR_summary}} for alternative approaches to utilising
-bootstrapped samples
+A function required for the "statistic" argument in the \code{\link{boot}} function.
+Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted odds ratio.
 }
 \seealso{
-\code{\link{analysis_dataset}}, \code{\link{estimate_weights}}, \code{\link{OR_summary}}
+\code{\link{estimate_weights}}, \code{\link{boot}}
 }

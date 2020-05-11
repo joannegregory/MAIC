@@ -1,21 +1,21 @@
-
-#' Bootstrapping for MAIC propensity weighted hazard ratios HELP PAGE NEEDS UPDATING
+#' Bootstrapping for MAIC weighted hazard ratios
 #'
-#' Bootstrapping of the hazard ratio to capture the uncertainty in the
-#' estimation of MAIC propensity weights using the following general process:
-#' bootstrapped samples
-#'
+#' A function required for the "statistic" argument in the \code{\link{boot}} function.
+#' Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted hazard ratio.
 #' @param intervention_data  A data frame containing data with weights (derived from
-#'   \code{\link{est_weights}}).
-#' @param comparator_data
-#' @param matching
-#' @param i
+#'   \code{\link{estimate_weights}}).
+#' @param comparator_data A data frame containing pseudo individual patient data from the comparator study.
+#'  The outcome variables names must match intervention_data.
+#' @param matching A character vector giving the names of the covariates to use
+#'   in matching. These names must match the column names in intervention_data
+#'   and comparator_data.
+#' @param i index used to select a sample within \code{\link{boot}}.
 #' @param model A model formula in the form 'Surv(Time, Event==1) ~ ARM'.
 #'   Variable names need to match the corresponding columns in intervention_data
 #'
-#' @return A HR value.
+#' @return The HR as a numeric value.
 #'
-#' @seealso \code{\link{analysis_dataset}}, \code{\link{estimate_weights}},
+#' @seealso \code{\link{estimate_weights}}, \code{\link{boot}}
 #' @export
 
 bootstrap_HR <- function(intervention_data, comparator_data, matching, i, model){
@@ -27,36 +27,30 @@ bootstrap_HR <- function(intervention_data, comparator_data, matching, i, model)
   perform_wt <- estimate_weights(intervention_data=bootstrap_data, matching_vars=matching, comparator_data=comparator_data)
 
   # survival data stat
-  cox_model <- coxph(model, data = perform_wt$analysis_data, weights = wt)
+  cox_model <- survival::coxph(model, data = perform_wt$analysis_data, weights = wt)
   HR <- exp(cox_model$coefficients)
 }
 
 
 
-
-#' Bootstrapping for MAIC propensity weighted odds ratios HELP PAGE NEEDS UPDATING
+#' Bootstrapping for MAIC weighted odds ratios
 #'
-#' Bootstrapping of the odds ratio to capture the uncertainty in the
-#' estimation of MAIC propensity weights using the following general process:
-#' \enumerate{
-#'    \item Sample patients with replacement from the intervention study
-#'    \item Estimate propensity weights for the current sample of patients
-#'    \item Calculate a weighted odds ratio
-#'    \item Repeat the steps above N times. Approx. 1000 simulations are usually
-#'    sufficient
-#' }
-#' Refer to \code{\link{OR_summary}} for alternative approaches to utilising
-#' bootstrapped samples
+#' A function required for the "statistic" argument in the \code{\link{boot}} function.
+#' Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted odds ratio.
 #'
-#' @param intervention_data
-#' @param comparator_data
-#' @param matching
-#' @param i
+#' @param intervention_data  A data frame containing data with weights (derived from
+#'   \code{\link{estimate_weights}}).
+#' @param comparator_data A data frame containing pseudo individual patient data from the comparator study.
+#'  The outcome variables names must match intervention_data.
+#' @param matching A character vector giving the names of the covariates to use
+#'   in matching. These names must match the column names in intervention_data
+#'   and comparator_data.
+#' @param i index used to select a sample within \code{\link{boot}}.
 #' @param model A model formula in the form 'endpoint ~ treatment_var'.
 #'   Variable names need to match the corresponding columns in intervention_data
-#' @return A data frame of n_sim bootstrapped OR values.
+#' @return The OR as a numeric value.
 #'
-#' @seealso \code{\link{analysis_dataset}}, \code{\link{estimate_weights}}, \code{\link{OR_summary}}
+#' @seealso \code{\link{estimate_weights}}, \code{\link{boot}}
 #' @export
 bootstrap_OR <- function(intervention_data, comparator_data, matching, i, model){
 
@@ -69,44 +63,5 @@ bootstrap_OR <- function(intervention_data, comparator_data, matching, i, model)
   # Perform logistic regression and extract the OR estimate
   logistic.regr <- suppressWarnings(glm(formula = model, family=binomial(link="logit"), data = perform_wt$analysis_data, weight = wt))
   OR <- exp(as.numeric(coef(logistic.regr)[2]))
-}
-
-
-#' Bootstrapping for MAIC propensity weighted relative risk HELP PAGE NEEDS UPDATING
-#'
-#' Bootstrapping of the relative risk to capture the uncertainty in the
-#' estimation of MAIC propensity weights using the following general process:
-#' \enumerate{
-#'    \item Sample patients with replacement from the intervention study
-#'    \item Estimate propensity weights for the current sample of patients
-#'    \item Calculate a weighted relative risk
-#'    \item Repeat the steps above N times. Approx. 1000 simulations are usually
-#'    sufficient
-#' }
-#' Refer to \code{\link{OR_summary}} for alternative approaches to utilising
-#' bootstrapped samples
-#'
-#' @param intervention_data
-#' @param comparator_data
-#' @param matching
-#' @param i
-#' @param model A model formula in the form 'endpoint ~ treatment_var'.
-#'   Variable names need to match the corresponding columns in intervention_data
-#'
-#' @return A data frame of n_sim bootstrapped OR values.
-#'
-#' @seealso \code{\link{analysis_dataset}}, \code{\link{estimate_weights}}, \code{\link{OR_summary}}
-#' @export
-bootstrap_RR <- function(intervention_data, comparator_data, matching, i, model){
-
-  # Samples the data
-  bootstrap_data <- intervention_data[i,]
-
-  # Estimates weights
-  perform_wt <- estimate_weights(intervention_data=bootstrap_data, matching_vars=matching,  comparator_data=comparator_data)
-
-  # Perform logistic regression and extract the RR estimate
-  poisson_regr <- suppressWarnings(glm(formula = model, family=poisson(link="log"), data = perform_wt$analysis_data, weight = wt))
-  RR <- exp(as.numeric(coef(poisson_regr)[2]))
 }
 

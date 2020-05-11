@@ -14,4 +14,5 @@ RoxygenNote: 7.1.0
 Imports:
     assertthat (>= 0.2.1),
     dplyr (>= 0.8.4),
-    magrittr (>= 1.5)
+    magrittr (>= 1.5),
+    survival (>= 3.1)

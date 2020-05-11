@@ -4,28 +4,27 @@
 \alias{profile_wts}
 \title{Produce a data frame of the weights assigned to alternative patient profiles HELP PAGE NEEDS UPDATING}
 \usage{
-profile_wts(data, wt = "wt", wt_rs = "wt_rs", vars)
+profile_wts(data, wt_col = "wt", wt_rs = "wt_rs", vars)
 }
 \arguments{
-\item{intervention_wts}{A data frame containing individual patient data from
+\item{data}{A data frame containing individual patient data from
 the intervention study, including a column containing the weights (derived
-using estimate_weights).}
+using \code{\link{estimate_weights}}).}
 
 \item{wt_col}{The name of the weights column in the data frame containing the
 intervention individual patient data and the MAIC propensity weights. The
-default is WT.}
+default is wt.}
+
+\item{vars}{A character vector giving the variable names of the baseline characteristics. These names must match the column names in
+data.}
 
 \item{rs_wt_col}{The name of the rescaled weights column in the data frame
 containing the intervention individual patient data and the MAIC propensity
-weights. The default is WT_RS.}
-
-\item{matching_vars}{A character vector giving the names of the covariates to
-use in matching. These names must match the column names in
-intervention_data and baseline_comparator.}
+weights. The default is wt_rs}
 }
 \value{
 A data frame that includes a summary of patient characteristics
-  associated with alternative weight values.
+  associated with alternative weight values ordered by ascending wt_col.
 }
 \description{
 Select the patient characteristics used in the matching and the MAIC weights

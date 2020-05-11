@@ -4,16 +4,16 @@
 \alias{summarize_wts}
 \title{Summarize the weight values HELP PAGE NEEDS UPDATING}
 \usage{
-summarize_wts(data, wt = "wt")
+summarize_wts(data, wt_col = "wt")
 }
 \arguments{
-\item{intervention_wts}{A data frame containing individual patient data from
+\item{data}{A data frame containing individual patient data from
 the intervention study, including a column containing the weights (derived
-using estimate_weights).}
+using \code{\link{estimate_weights}}).}
 
 \item{wt_col}{The name of the weights column in the data frame containing the
 intervention individual patient data and the MAIC propensity weights. The
-default is WT.}
+default is wt.}
 }
 \value{
 A data frame that inlcudes a summary (minimum, maximum, median, mean) of the weights.

@@ -2,26 +2,28 @@
 % Please edit documentation in R/weights.R
 \name{estimate_weights}
 \alias{estimate_weights}
-\title{Estimate MAIC propensity weights HELP PAGE NEEDS UPDATING TEST}
+\title{Estimate MAIC propensity weights}
 \usage{
 estimate_weights(intervention_data, comparator_data, matching_vars)
 }
 \arguments{
 \item{intervention_data}{A data frame containing individual patient data from the intervention study.}
 
+\item{comparator_data}{A data frame containing pseudo individual patient data from the comparator study.
+The outcome variables names must match intervention_data.}
+
 \item{matching_vars}{A character vector giving the names of the covariates to use
 in matching. These names must match the column names in intervention_data
-and baseline_comparator.}
-
-\item{baseline_comparator}{A data frame of average covariate values from the comparator study.}
+and comparator_data.}
 
 \item{...}{Additional arguments to be passed to optimisation functions such
 as the method for maximum likelihood optimisation. The default is method =
 "BFGS". Refer to \code{\link[stats]{optim}} for options.}
 }
 \value{
-A list containing 2 objects. First, a data frame named intervention_wts_data including the intervention data
-  with additional columns named WT (weights) and WT_RS (rescaled weights). Second, a vector of the matching variables names used.
+A list containing 2 objects. First, a data frame named analysis_data containing intervention_data and comparator_data
+  with additional columns named wt (weights) and wt_rs (rescaled weights) where the weights are 1 for the comparator data.
+  Second, a vector called matching_vars of the matching variables names used.
 }
 \description{
 Estimate propensity weights for matched-adjusted indirect comparison (MAIC)

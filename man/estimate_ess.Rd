@@ -4,16 +4,16 @@
 \alias{estimate_ess}
 \title{Estimate effective sample size HELP PAGE NEEDS UPDATING}
 \usage{
-estimate_ess(data, wt = "wt")
+estimate_ess(data, wt_col = "wt")
 }
 \arguments{
-\item{intervention_wts}{A data frame containing individual patient data from
+\item{data}{A data frame containing individual patient data from
 the intervention study, including a column containing the weights (derived
-using estimate_weights).}
+using \code{\link{estimate_weights}}).}
 
 \item{wt_col}{The name of the weights column in the data frame containing the
 intervention individual patient data and the MAIC propensity weights. The
-default is WT.}
+default is wt.}
 }
 \value{
 The effective sample size (ESS) as a numeric value.

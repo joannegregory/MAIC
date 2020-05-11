@@ -2,25 +2,25 @@
 % Please edit documentation in R/weights.R
 \name{wt_diagnostics}
 \alias{wt_diagnostics}
-\title{Weight diagnostics HELP PAGE NEEDS UPDATING}
+\title{Weight diagnostics}
 \usage{
-wt_diagnostics(data, matching_vars, wt = "wt")
+wt_diagnostics(data, wt_col = "wt", wt_rs = "wt_rs", vars)
 }
 \arguments{
-\item{matching_vars}{A character vector giving the names of the covariates to
-use in matching.}
+\item{wt_col}{The name of the weights column in the data frame containing the
+ intervention individual patient data and the MAIC propensity weights. The
+ default is WT.
+ weights. The default is WT_RS.
+@param rs_wt_col The name of the rescaled weights column in the data frame
+ containing the intervention individual patient data and the MAIC propensity
+ weights. The default is wt_rs}
+
+\item{vars}{A character vector giving the variable names of the baseline characteristics. These names must match the column names in
+data.}
 
 \item{intervention_wts}{A data frame containing individual patient data from
 the intervention study, including a column containing the weights (derived
 using estimate_weights).}
-
-\item{wt_col}{The name of the weights column in the data frame containing the
-intervention individual patient data and the MAIC propensity weights. The
-default is WT.}
-
-\item{rs_wt_col}{The name of the rescaled weights column in the data frame
-containing the intervention individual patient data and the MAIC propensity
-weights. The default is WT_RS.}
 }
 \value{
 A list of data frames to use for weight diagnostics.
@@ -28,13 +28,10 @@ A list of data frames to use for weight diagnostics.
 \description{
 Produce a set of useful diagnostic metrics to summarize propensity weights
 \itemize{
-  \item ESS
-  \item Summary statistics of the weights: minimum, maximum, median, mean, sd
-  \item Patient profile associated with given weight values
+  \item ESS (\code{\link{estimate_ess}})
+  \item Summary statistics of the weights: minimum, maximum, median, mean, sd (\code{\link{summarize_wts}})
+  \item Patient profile associated with given weight values (\code{\link{profile_wts}})
 }
-}
-\details{
-This function calls each of estimate_ess, summarize_wts and profile_wts in turn.
 }
 \seealso{
 \code{\link{estimate_weights}}, \code{\link{estimate_ess}}, \code{\link{summarize_wts}}, \code{\link{profile_wts}}
