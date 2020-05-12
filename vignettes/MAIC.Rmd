@@ -115,6 +115,8 @@ The binary variables should be called:
 All binary covariates to be used in the matching should be coded 1 and 0 (see
 example for sex below).
 
+The variable names for the macthing covariates need to be listed in an object called match_cov.
+
 ```{r}
 #### Intervention data
 
@@ -134,6 +136,15 @@ adtte <- read.csv(file.path(data_path, "adtte.csv")) %>% # time to event data
 # Combine all intervention data
 intervention_input <- plyr::join_all(list(adsl, adrs, adtte), type = "full", by=c("USUBJID", "ARM"))
 head(intervention_input)
+
+# List out matching covariates
+match_cov <- c("AGE",
+               "SEX",
+               "SMOKE",
+               "ECOG0")
+
+
+
 ```
 
 
@@ -163,13 +174,34 @@ comparator_binary <- data.frame("Binary_event"=
 # rows do not represent the same observation
 comparator_input <- cbind(comparator_surv, comparator_binary)
 
+
+```
+
+### Baseline data from the comparator data
+The summary of the baseline characterstics (number of patients, mean and SD for continuous varaible and proportion for binary variables) from the comparator trials is needed as a data frame. Naming of the covariates should be consistant with intervention_input in target_pop_standard.
+
+```{r}
+
 # Baseline aggregate data for the comparator population
 target_pop <- read.csv(file.path(data_path,"Aggregate data.csv"))
 target_pop
 
 
-```
+# Renames target population cols to match match_cov
+match_cov
+names(target_pop)
+target_pop_standard <- target_pop %>%
+  #EDIT
+  dplyr::rename(N=N,
+                Treatment="ARM",
+                AGE=age.mean,
+                SEX=prop.male,
+                SMOKE=prop.smoke,
+                ECOG0=prop.ecog0
+  ) %>%
+  dplyr::select(N, Treatment, match_cov)
 
+```
 \
 
 
@@ -225,26 +257,6 @@ cent_match_cov <- c("Age_centered",
                     "Sex_centered",
                     "Smoke_centered",
                     "ECOG0_centered")
-
-
-match_cov <- c("AGE",
-               "SEX",
-               "SMOKE",
-               "ECOG0")
-
-# Renames target population cols to match match_cov
-match_cov
-names(target_pop)
-target_pop_standard <- target_pop %>%
-  #EDIT
-  dplyr::rename(N=N,
-                Treatment="ARM",
-                AGE=age.mean,
-                SEX=prop.male,
-                SMOKE=prop.smoke,
-                ECOG0=prop.ecog0
-  ) %>%
-  dplyr::select(N, Treatment, match_cov)
 
 
 ```
