@@ -19,10 +19,10 @@ default is wt.}
 A data frame that includes a summary (minimum, maximum, median, mean) of the weights.
 }
 \description{
-Produce a summary of the weights (minimum, maximum, median, mean, sd). Mean
+Produce a summary of the weights (minimum, maximum, median, mean, SD). Mean
 and standard deviation are provided for completeness. In practice the
-distribution of weights may be skewed in which case mean and sd should be
-interpreted with caution
+distribution of weights may be skewed in which case mean and SD should be
+interpreted with caution.
 }
 \seealso{
 \code{\link{estimate_weights}}

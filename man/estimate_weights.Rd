@@ -13,8 +13,7 @@ estimate_weights(intervention_data, comparator_data, matching_vars)
 The outcome variables names must match intervention_data.}
 
 \item{matching_vars}{A character vector giving the names of the covariates to use
-in matching. These names must match the column names in intervention_data
-and comparator_data.}
+in matching. These names must match the column names in intervention_data.}
 
 \item{...}{Additional arguments to be passed to optimisation functions such
 as the method for maximum likelihood optimisation. The default is method =
@@ -26,10 +25,13 @@ A list containing 2 objects. First, a data frame named analysis_data containing 
   Second, a vector called matching_vars of the matching variables names used.
 }
 \description{
-Estimate propensity weights for matched-adjusted indirect comparison (MAIC)
+Estimate propensity weights for matched-adjusted indirect comparison (MAIC).
 }
 \references{
 NICE DSU TECHNICAL SUPPORT DOCUMENT 18: METHODS FOR
   POPULATION-ADJUSTED INDIRECT COMPARISONS IN SUBMSISSIONS TO NICE, REPORT BY
   THE DECISION SUPPORT UNIT, December 2016
+}
+\seealso{
+\code{\link{optim}}
 }

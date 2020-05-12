@@ -23,14 +23,20 @@ the intervention study, including a column containing the weights (derived
 using estimate_weights).}
 }
 \value{
-A list of data frames to use for weight diagnostics.
+List of the following:
+\itemize{
+  \item The effective sample size (ESS) as a numeric value.
+  \item A data frame that includes a summary (minimum, maximum, median, mean) of the weights.
+  \item A data frame that includes a summary of patient characteristics
+  associated with each weight value.
+}
 }
 \description{
 Produce a set of useful diagnostic metrics to summarize propensity weights
 \itemize{
   \item ESS (\code{\link{estimate_ess}})
-  \item Summary statistics of the weights: minimum, maximum, median, mean, sd (\code{\link{summarize_wts}})
-  \item Patient profile associated with given weight values (\code{\link{profile_wts}})
+  \item Summary statistics of the weights: minimum, maximum, median, mean, SD (\code{\link{summarize_wts}})
+  \item Patient profile associated with weight values (\code{\link{profile_wts}})
 }
 }
 \seealso{

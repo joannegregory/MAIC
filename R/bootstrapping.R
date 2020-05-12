@@ -1,17 +1,16 @@
 #' Bootstrapping for MAIC weighted hazard ratios
 #'
 #' A function required for the "statistic" argument in the \code{\link{boot}} function.
-#' Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted hazard ratio.
-#' @param intervention_data  A data frame containing data with weights (derived from
-#'   \code{\link{estimate_weights}}).
+#' Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted hazard ratio (HR) from a Cox proportional hazards model.
+#' @param intervention_data  A data frame containing containing individual patient data from the intervention study.
 #' @param comparator_data A data frame containing pseudo individual patient data from the comparator study.
 #'  The outcome variables names must match intervention_data.
 #' @param matching A character vector giving the names of the covariates to use
 #'   in matching. These names must match the column names in intervention_data
 #'   and comparator_data.
-#' @param i index used to select a sample within \code{\link{boot}}.
+#' @param i Index used to select a sample within \code{\link{boot}}.
 #' @param model A model formula in the form 'Surv(Time, Event==1) ~ ARM'.
-#'   Variable names need to match the corresponding columns in intervention_data
+#'   Variable names need to match the corresponding columns in intervention_data.
 #'
 #' @return The HR as a numeric value.
 #'
@@ -36,18 +35,17 @@ bootstrap_HR <- function(intervention_data, comparator_data, matching, i, model)
 #' Bootstrapping for MAIC weighted odds ratios
 #'
 #' A function required for the "statistic" argument in the \code{\link{boot}} function.
-#' Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted odds ratio.
+#' Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted odds ratio (OR) from a binomial generalised linear model.
 #'
-#' @param intervention_data  A data frame containing data with weights (derived from
-#'   \code{\link{estimate_weights}}).
+#' @param intervention_data  A data frame containing containing individual patient data from the intervention study.
 #' @param comparator_data A data frame containing pseudo individual patient data from the comparator study.
 #'  The outcome variables names must match intervention_data.
 #' @param matching A character vector giving the names of the covariates to use
 #'   in matching. These names must match the column names in intervention_data
 #'   and comparator_data.
-#' @param i index used to select a sample within \code{\link{boot}}.
+#' @param i Index used to select a sample within \code{\link{boot}}.
 #' @param model A model formula in the form 'endpoint ~ treatment_var'.
-#'   Variable names need to match the corresponding columns in intervention_data
+#'   Variable names need to match the corresponding columns in intervention_data.
 #' @return The OR as a numeric value.
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{boot}}

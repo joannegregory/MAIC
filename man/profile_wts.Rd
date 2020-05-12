@@ -2,7 +2,7 @@
 % Please edit documentation in R/weights.R
 \name{profile_wts}
 \alias{profile_wts}
-\title{Produce a data frame of the weights assigned to alternative patient profiles}
+\title{Produce a data frame of the weights assigned to patient profiles}
 \usage{
 profile_wts(data, wt_col = "wt", wt_rs = "wt_rs", vars)
 }
@@ -24,7 +24,7 @@ weights. The default is wt_rs}
 }
 \value{
 A data frame that includes a summary of patient characteristics
-  associated with alternative weight values ordered by ascending wt_col.
+  associated with each weight value.
 }
 \description{
 Select the patient characteristics used in the matching and the MAIC weights

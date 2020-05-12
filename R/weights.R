@@ -16,14 +16,13 @@ gradfn <- function(a1, X){
 
 #' Estimate MAIC propensity weights
 #'
-#' Estimate propensity weights for matched-adjusted indirect comparison (MAIC)
+#' Estimate propensity weights for matched-adjusted indirect comparison (MAIC).
 #'
 #' @param intervention_data A data frame containing individual patient data from the intervention study.
 #' @param comparator_data  A data frame containing pseudo individual patient data from the comparator study.
 #'  The outcome variables names must match intervention_data.
 #' @param matching_vars A character vector giving the names of the covariates to use
-#'   in matching. These names must match the column names in intervention_data
-#'   and comparator_data.
+#'   in matching. These names must match the column names in intervention_data.
 #' @param ... Additional arguments to be passed to optimisation functions such
 #'   as the method for maximum likelihood optimisation. The default is method =
 #'   "BFGS". Refer to \code{\link[stats]{optim}} for options.
@@ -34,7 +33,7 @@ gradfn <- function(a1, X){
 #' @references NICE DSU TECHNICAL SUPPORT DOCUMENT 18: METHODS FOR
 #'   POPULATION-ADJUSTED INDIRECT COMPARISONS IN SUBMSISSIONS TO NICE, REPORT BY
 #'   THE DECISION SUPPORT UNIT, December 2016
-#'
+#' @seealso \code{\link{optim}}
 #' @export
 estimate_weights <- function(intervention_data, comparator_data, matching_vars){
 
@@ -91,7 +90,6 @@ estimate_weights <- function(intervention_data, comparator_data, matching_vars){
 
   # Outputs are:
   #       - the analysis data (intervention PLD, weights and comparator pseudo PLD)
-  #       - A character  vector with the name of the centered matching variables
   #       - A character  vector with the name of the matching variables
   output <- list(
     matching_vars = matching_vars,
@@ -131,10 +129,10 @@ estimate_ess <- function(data, wt_col="wt"){
 
 #' Summarize the weight values
 #'
-#' Produce a summary of the weights (minimum, maximum, median, mean, sd). Mean
+#' Produce a summary of the weights (minimum, maximum, median, mean, SD). Mean
 #' and standard deviation are provided for completeness. In practice the
-#' distribution of weights may be skewed in which case mean and sd should be
-#' interpreted with caution
+#' distribution of weights may be skewed in which case mean and SD should be
+#' interpreted with caution.
 #'
 #' @param data A data frame containing individual patient data from
 #'   the intervention study, including a column containing the weights (derived
@@ -196,7 +194,7 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 }
 
 
-#' Produce a data frame of the weights assigned to alternative patient profiles
+#' Produce a data frame of the weights assigned to patient profiles
 #'
 #' Select the patient characteristics used in the matching and the MAIC weights
 #' and output a data frame of unique propensity weight values with the
@@ -220,7 +218,7 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 #'   data.
 #'
 #' @return A data frame that includes a summary of patient characteristics
-#'   associated with alternative weight values ordered by ascending wt_col.
+#'   associated with each weight value.
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
@@ -239,8 +237,8 @@ profile_wts <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
 #' Produce a set of useful diagnostic metrics to summarize propensity weights
 #' \itemize{
 #'   \item ESS (\code{\link{estimate_ess}})
-#'   \item Summary statistics of the weights: minimum, maximum, median, mean, sd (\code{\link{summarize_wts}})
-#'   \item Patient profile associated with given weight values (\code{\link{profile_wts}})
+#'   \item Summary statistics of the weights: minimum, maximum, median, mean, SD (\code{\link{summarize_wts}})
+#'   \item Patient profile associated with weight values (\code{\link{profile_wts}})
 #' }
 #'
 #' @param intervention_wts A data frame containing individual patient data from
@@ -256,7 +254,13 @@ profile_wts <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
 #' @param vars A character vector giving the variable names of the baseline characteristics. These names must match the column names in
 #'   data.
 #'
-#' @return A list of data frames to use for weight diagnostics.
+#' @return List of the following:
+#' \itemize{
+#'   \item The effective sample size (ESS) as a numeric value.
+#'   \item A data frame that includes a summary (minimum, maximum, median, mean) of the weights.
+#'   \item A data frame that includes a summary of patient characteristics
+#'   associated with each weight value.
+#' }
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{estimate_ess}}, \code{\link{summarize_wts}}, \code{\link{profile_wts}}
 #' @export
