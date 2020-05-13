@@ -7,20 +7,20 @@
 wt_diagnostics(data, wt_col = "wt", wt_rs = "wt_rs", vars)
 }
 \arguments{
+\item{data}{A data frame containing individual patient data from
+the intervention study, including a column containing the weights (derived
+using estimate_weights).}
+
 \item{wt_col}{The name of the weights column in the data frame containing the
- intervention individual patient data and the MAIC propensity weights. The
- default is WT.
- weights. The default is WT_RS.
-@param rs_wt_col The name of the rescaled weights column in the data frame
- containing the intervention individual patient data and the MAIC propensity
- weights. The default is wt_rs}
+intervention individual patient data and the MAIC propensity weights. The
+default is 'wt'.}
 
 \item{vars}{A character vector giving the variable names of the baseline characteristics. These names must match the column names in
 data.}
 
-\item{intervention_wts}{A data frame containing individual patient data from
-the intervention study, including a column containing the weights (derived
-using estimate_weights).}
+\item{rs_wt_col}{The name of the rescaled weights column in the data frame
+containing the intervention individual patient data and the MAIC propensity
+weights. The default is wt_rs}
 }
 \value{
 List of the following:

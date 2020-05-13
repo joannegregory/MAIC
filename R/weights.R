@@ -242,7 +242,7 @@ profile_wts <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
 #'   \item Patient profile associated with weight values (\code{\link{profile_wts}})
 #' }
 #'
-#' @param intervention_wts A data frame containing individual patient data from
+#' @param data A data frame containing individual patient data from
 #'   the intervention study, including a column containing the weights (derived
 #'   using estimate_weights).
 #' @param wt_col The name of the weights column in the data frame containing the
