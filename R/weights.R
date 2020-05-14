@@ -188,7 +188,8 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
     ggplot2::theme_bw()+
     ggplot2::theme(axis.title = ggplot2::element_text(size = 16),
                    axis.text = ggplot2::element_text(size = 16)) +
-    ggplot2::ylab("Frequency")
+    ggplot2::ylab("Frequency") +
+    ggplot2::xlab("Weight")
 
   return(hist_plot)
 }
@@ -241,14 +242,13 @@ profile_wts <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
 #'   \item Patient profile associated with weight values (\code{\link{profile_wts}})
 #' }
 #'
-#' @param intervention_wts A data frame containing individual patient data from
+#' @param data A data frame containing individual patient data from
 #'   the intervention study, including a column containing the weights (derived
 #'   using estimate_weights).
 #' @param wt_col The name of the weights column in the data frame containing the
 #'   intervention individual patient data and the MAIC propensity weights. The
-#'   default is WT.
-#'   weights. The default is WT_RS.
-#'  @param rs_wt_col The name of the rescaled weights column in the data frame
+#'   default is 'wt'.
+#' @param rs_wt_col The name of the rescaled weights column in the data frame
 #'   containing the intervention individual patient data and the MAIC propensity
 #'   weights. The default is wt_rs
 #' @param vars A character vector giving the variable names of the baseline characteristics. These names must match the column names in

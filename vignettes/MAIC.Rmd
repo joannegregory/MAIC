@@ -52,46 +52,69 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Introduction {-}
+# Introduction
 
-This document describes the steps required to perform a matching-adjusted
+This document describes the steps required to perform an matching-adjusted
 indirect comparison (MAIC) analysis using the 'MAIC' package in R for a
 disconnected treatment network where the endpoint of interest is either
 time-to-event (e.g. overall survival) or binary (e.g. objective tumor
 response).
 
-The methods described in this document are based on those described by
+The methods described in this document are based on those originally described by
 Signorovitch et al. 2012 and described in the National Institute for Health and
 Care Excellence (NICE) Decision Support Unit (DSU) Technical Support Document
 (TSD) 18.[@signorovitch2012matching; @Phillippo2016a]
 
+MAIC methods are often required when: 
+
+* There is no common comparator treatment to link a clinical trial of a new
+intervention to clinical trials of other treatments in a given disease area. For
+example if the only study of a new intervention is a single arm trial with no
+control group. This is commonly referred to as an unanchored MAIC
+* A common comparator is available to link a clinical trial of a new
+intervention to a clinical trial of one other treatment in a given disease area
+but there are substantial differences in patient demographic or disease
+characteristics that are believed to be either prognostic or treatment effect
+modifiers. This is commonly referred to as an anchored MAIC
+
 The premise of MAIC methods is to adjust for between-trial differences in
-baseline patient characteristics. When a common treatment comparator or ‘linked
-network’ are unavailable, a MAIC assumes that differences between absolute
-outcomes that would be observed in each trial are entirely explained by
-imbalances in prognostic variables and treatment effect modifiers. Under this
-assumption, every prognostic variable and every treatment effect modifier that
-is imbalanced between the two studies must be available. This assumption is
-generally considered very difficult to meet.[@Phillippo2016a]
-There are several ways of identifying prognostic variables/treatment effect
-modifiers to be used in the MAIC analyses, some of which include:
+patient demographic or disease characteristics at baseline. When a common
+treatment comparator or ‘linked network’ are unavailable, a MAIC assumes that
+differences between absolute outcomes that would be observed in each trial are
+entirely explained by imbalances in prognostic variables and treatment effect
+modifiers. Prognostic variables are those that are predictive of disease
+outcomes, independent of the treatment received. For example, older patients may
+have increased risk of death compared to younger patients. Treatment effect
+modifiers are those variables that influence the relative effect of one
+treatment compared to another. For example patients with a better performance
+status may experience a larger treatment benefit than those with a worse
+performance status. Under this assumption, every prognostic variable and every
+treatment effect modifier that is imbalanced between the two studies must be
+available. This assumption is generally considered very difficult to
+meet.[@Phillippo2016a] There are several ways of identifying prognostic
+variables/treatment effect modifiers to be used in the MAIC analyses, some of
+which include:
 
 * Clinical expertise (when available to a project)
 * Published papers/previous submissions (what has been identified in the disease area previously)
 * Exploratory analyses that look at univariable/multivariable analyses (regression models)
-* Analyzing subgroup analyses presented in the clinical study report
+* Subgroup analyses of clinical trials may identify interactions between patient
+characteristics and the relative treatment effect
 
-The data used to create this document has been simulated to resemble that of
-clinical trial data (in ADaM format). For the purpose of this example the
-treatments being compared are 'intervention' and 'comparator', where individual
-patient data is available for 'intervention' and aggregate summary data is
-available for 'comparator'. In this example scenario, age, sex, the Eastern
-Cooperative Oncology Group performance status (ECOG PS) and smoking status have
-been identified as imbalanced prognostic variables/treatment effect modifiers.
+## Example Scenario
 
+For the purposes of this example we present an unanchored MAIC of two treatments
+in lung cancer with the treatments being compared labelled 'intervention' and
+'comparator'. The data used in this example have been simulated to resemble that
+'of clinical trial data. The data available are:
 
-\
+* Individual patient data from a single arm study of 'intervention'
+* Aggregate summary data for 'comparator'. This could be from a single arm study of
+the comparator or from one arm of a randomised controlled trial.
 
+In this example scenario, age, sex, the Eastern Cooperative Oncology Group
+performance status (ECOG PS) and smoking status have been identified as
+imbalanced prognostic variables/treatment effect modifiers.
 
 # Set up packages, directories and data
 
@@ -130,10 +153,10 @@ To perform anchored MAICs, the following data is required:
 * Baseline data from the comparator trial
 
 ### Intervention trial IPD
-This example reads in and combines data from three standard simulated ADaM data
+This example reads in and combines data from three standard simulated data
 sets (adsl, adrs and adtte) which are saved as '.csv' files. The data needs some
-manipulation to standardize the variable names and ensure the data will work in
-the MAIC package functions.
+manipulation to standardize the variable names since the MAIC package functions
+assume certain names for some variables
 
 The variables needed for the time to event analyses are:
 
@@ -149,7 +172,7 @@ The variables needed for the binary event analyses are:
 For the matching variables:
 
 * All binary variables to be used in the matching should be coded 1 and 0 (see example for sex below).
-* The variable names need to be listed in an object called <tt>match_cov</tt>.
+* The variable names need to be listed in a character vector called <tt>match_cov</tt>.
 
 ```{r}
 #### Intervention data
@@ -186,13 +209,14 @@ Naming of variables in the comparator data should be consistent with those used
 in the intervention IPD.
 
 It is common for binary endpoints to be reported as a percentage of responders
-with the event and therefore the example code below simulates pseudo binary
-response data based on the total number of patients and the proportion of
+with the event and therefore the example code below simulates pseudo-data for a
+binary response based on the total number of patients and the proportion of
 responders.
 
 The comparator data will include pseudo individual patient data from two
-different endpoints and it should be highlighted that each row does not provide
-the data for a particular patient (there is no 1:1 relationship between endpoints).
+different endpoints and it should be highlighted that there is no 1:1
+relationship between endpoints for a given patient since these are reconstructed
+data and not actual observed data.
 ```{r}
 #### Comparator pseudo data
 
@@ -214,9 +238,9 @@ comparator_input <- cbind(comparator_surv, comparator_binary)
 ```
 
 ### Baseline data from the comparator trial
-The aggregate baseline characterstics (number of patients, mean and SD for
-continuous varaible and proportion for binary variables) from the comparator
-trial is needed as a data frame. Naming of the covariates in this data frame
+The aggregate baseline characteristics (number of patients, mean and SD for
+continuous variables and proportion for binary variables) from the comparator
+trial are needed as a data frame. Naming of the covariates in this data frame
 (named below as <tt>target_pop_standard</tt>) should be consistant with the
 intervention data (<tt>intervention_input</tt>).
 
@@ -225,7 +249,7 @@ intervention data (<tt>intervention_input</tt>).
 target_pop <- read.csv(file.path(data_path,"Aggregate data.csv"))
 target_pop
 
-# Renames target population cols to match match_cov
+# Renames target population cols to be consistent with match_cov
 match_cov
 names(target_pop)
 target_pop_standard <- target_pop %>%
@@ -237,10 +261,10 @@ target_pop_standard <- target_pop %>%
                 SMOKE=prop.smoke,
                 ECOG0=prop.ecog0
   ) %>%
-  dplyr::select(N, Treatment, match_cov)
+  dplyr::select(N, Treatment, all_of(match_cov))
 
 ```
-\
+
 
 
 # Estimate weights
@@ -248,35 +272,35 @@ target_pop_standard <- target_pop %>%
 ## Statistical theory 
 
 As described by Signorovitch et al. (supplemental appendix), we must find a
-$\beta$, such that re-weighting baseline characteristics, $x_{i,ild}$, by
-$\hat{\omega}_i=\exp{(x_{i,ild}.\beta)}$, exactly matches the mean baseline
-characteristics for the data source for which only aggregate data is available.
-That is, we must find a solution to: $$ \bar{x}_{agg}\sum_{i=1}^n
-\exp{(x_{i,ild}.\beta)}  = \sum_{i=1}^n x_{i,ild}.\exp{(x_{i,ild}.\beta)}\qquad
-(1)  $$ This estimator is equivalent to solving the equation $$ 0 = \sum_{i=1}^n
-(x_{i,ild} -  \bar{x}_{agg} ).\exp{(x_{i,ild}.\beta)}$$ without loss of
-generality, it can be assumed that  $\bar{x}_{agg} = 0$ (e.g we could transform
-baseline characteristics in both trials by subtracting  $\bar{x}_{agg})$
-leaving the estimator $$0 = \sum_{i=1}^n (x_{i,ild})\exp{(x_{i,ild}.\beta)}.$$
-The right hand side of this estimator is the first derivative of $$ Q(\beta) =
-\sum_{i=1}^n  \exp{(x_{i,ild}.\beta)} $$ As described by Signorovitch et al
-(supplemental appendix), $Q(\beta)$ is convex and therefore any finite solution
-to (1) is unique and corresponds to the global minimum of $Q(\beta)$.
+$\beta$, such that re-weighting baseline characteristics for the intervention,
+$x_{i,ild}$ exactly matches the mean baseline characteristics for the comparator
+data source for which only aggregate data is available.
 
+The weights are given by:
+$$\hat{\omega}_i=\exp{(x_{i,ild}.\beta)}\qquad (1)$$ That is, we must find a solution to: $$
+\bar{x}_{agg}\sum_{i=1}^n \exp{(x_{i,ild}.\beta)}  = \sum_{i=1}^n
+x_{i,ild}.\exp{(x_{i,ild}.\beta)}\qquad (2)  $$ This estimator is equivalent to
+solving the equation $$ 0 = \sum_{i=1}^n (x_{i,ild} -  \bar{x}_{agg}
+).\exp{(x_{i,ild}.\beta)}\qquad (3)$$ without loss of generality, it can be assumed that
+$\bar{x}_{agg} = 0$ (e.g we could transform baseline characteristics in both
+trials by subtracting  $\bar{x}_{agg}$) leaving the estimator $$0 = \sum_{i=1}^n
+(x_{i,ild})\exp{(x_{i,ild}.\beta)}\qquad (4)$$ The right hand side of this estimator is
+the first derivative of $$ Q(\beta) = \sum_{i=1}^n  \exp{(x_{i,ild}.\beta)}\qquad (5) $$
+As described by Signorovitch et al (supplemental appendix), $Q(\beta)$ is convex
+and therefore any finite solution to (2) is unique and corresponds to the global
+minimum of $Q(\beta)$.
 
-## Centering of baseline characteristics
+In order to facilitate estimation of patient weights, $\hat{\omega}_i$, it is
+necessary to center the baseline characteristics of the intervention data using
+the mean baseline characteristics from the comparator data.
 
-As described above, in order to facilitate estimation of patient weights,
-$\hat{\omega}_i$, it is necessary to center the baseline characteristics of the
-intervention data using the mean baseline characteristics from the comparator
-data.
+As described by Phillippo, balancing on both mean and standard deviation for
+continuous variables (where possible) may be considered in some cases. This is
+included in the example below
 
-Note, as described by Phillippo, it is necessary to balance on both mean and
-standard deviation for continuous variables (where possible).
-
-The code below also specifies a variable (<tt>cent_match_cov</tt>) that contains the
+The code below also specifies an object (<tt>cent_match_cov</tt>) that contains the
 names of the centered matching variables - this will be needed for the analyses
-later on.
+below.
 
 ```{r}
 #### center baseline characteristics
@@ -306,13 +330,13 @@ cent_match_cov <- c("Age_centered",
 ## Optimization procedure
 
 Following the centering of the baseline characteristics of the intervention
-study, the optimization procedure can be performed to minimize $Q(\beta) =
-\sum_{i=1}^n \exp{(x_{i,ild}.\beta)}$ and weights estimated using the
-estimate_weights function in the MAIC package. This function outputs:
+study, patient weights can be estimated using the estimate_weights function in
+the MAIC package. This performs an optimization procedure to minimize $Q(\beta)
+= \sum_{i=1}^n \exp{(x_{i,ild}.\beta)}$ outputs a list containing:
 
+* A character vector containing the names of the matching variables
 * An analysis data frame of combined intervention data and comparator data with
 weights (patients in the pseudo comparator data are assigned weights of 1)
-* A character vector containing the matching variables
 
 ```{r}
 est_weights <- estimate_weights(intervention_data=intervention_data,
@@ -338,11 +362,13 @@ sensible.
 For a weighted estimate, the effective sample size (ESS) is the number of
 independent non-weighted individuals that would be required to give an estimate
 with the same precision as the weighted sample estimate. The approximate
-effective sample size is calculated as: $$  \frac{({ \sum_{i=1}^n \hat{\omega}_i
-})^2}{ \sum_{i=1}^n \hat{\omega^2}_i  } $$
-A small ESS, relative to the original sample size, is an indication that the
-weights are highly variable due to a lack of population overlap, and that the
-estimate may be unstable.
+effective sample size is calculated as: $$ ESS =  \frac{({ \sum_{i=1}^n
+\hat{\omega}_i })^2}{ \sum_{i=1}^n \hat{\omega^2}_i  } $$ A small ESS, relative
+to the original sample size, is an indication that the weights are highly
+variable and that the estimate may be unstable. This often occurs if there is
+very limited overlap in the distribution of the matching variables between the
+populations being compared. If there is insufficient overlap between populations
+it may not be possible to obtain reliable estimates of the weights
 
 The MAIC package includes a function to estimate the ESS, as well as produce a
 summary of the weights and the profiles of patients with those weights. When
@@ -357,7 +383,8 @@ less influence on the weighted analyses.
 diagnostics <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
                 wt_diagnostics(vars = est_weights$matching_vars)
 
-(ESS <- diagnostics$ESS)
+ESS <- diagnostics$ESS
+
 diagnostics$Summary_of_weights
 head(diagnostics$Weight_profiles)
 
@@ -369,9 +396,11 @@ head(diagnostics$Weight_profiles)
 
 It is easier to examine the distribution of the weights by scaling them, so that
 the rescaled weights are relative to the original unit weights of each
-individual; in other words, a rescaled weight $>$ 1 means that an individual
-carries more weight in the re-weighted population than the original data. The
-rescaled weight are calculated as:
+individual. In other words, a rescaled weight $>$ 1 means that an individual
+carries more weight in the re-weighted population than the original data and a
+rescaled weight $<$ 1 means that an individual carries more weight in the
+re-weighted population than the original data. The rescaled weights are
+calculated as:
 
 $$\tilde{\omega}_i  =  \frac{  \hat{\omega}_i}{ \sum_{i=1}^n \hat{\omega}_i }.N $$
 
@@ -396,64 +425,63 @@ the intervention-treated patients match those aggregate characteristics from the
 comparator trial and outputs a summary that can be used for reporting.
 
 ```{r}
-# Set weighted and unweighted intervention data
-baseline_analysis_data <- # weighted intervention data
-                          est_weights$analysis_data %>% 
-                          filter(ARM=="Intervention") %>% 
-                          dplyr::mutate(Treatment=paste0(ARM, "_matched")) %>%
-                          
-                          # Unweighted intervention data
-                          rbind(est_weights$analysis_data %>% 
-                          filter(ARM=="Intervention")%>% 
-                          mutate(Treatment=paste0(ARM, "_unadjusted"), 
-                                 wt = 1, 
-                                 wt_rs = 1)) %>%
-                          select(Treatment, match_cov, wt, wt_rs)
-head(baseline_analysis_data)
+# Create an object to hold the output
+baseline_summary <- list('Intervention_weighted' = NA, 'Intervention' = NA, 'Comparator' = NA)
 
-# Summerize baseline characteristics
-Baseline_summary <- baseline_analysis_data %>%
-                    dplyr::group_by(Treatment) %>%
-                    dplyr::summarise_each(list(~ weighted.mean(., wt)), -c(wt, wt_rs)) %>% 
-                    rbind(target_pop_standard  %>% 
-                            select(Treatment, match_cov) )
-Baseline_summary
+# Summarise matching variables for weighted intervention data
+baseline_summary$Intervention_weighted <- est_weights$analysis_data %>% 
+  filter(ARM=="Intervention") %>%
+  dplyr::select(all_of(match_cov), wt) %>%
+  dplyr::summarise_at(match_cov, list(~ weighted.mean(., wt)))
 
-Baseline_summary_n <- baseline_analysis_data %>%
-                      dplyr::group_by(Treatment) %>%
-                      dplyr::summarise('N' = n()) %>%
-                      rbind(target_pop_standard %>% 
-                              select(N, Treatment)) %>%
-                      dplyr::rename(`N/ESS`=N)
-Baseline_summary_n
+# Summarise matching variables for unweighted intervention data
+baseline_summary$Intervention <- est_weights$analysis_data %>% 
+  filter(ARM=="Intervention") %>%
+  dplyr::select(all_of(match_cov), wt) %>%
+  dplyr::summarise_at(match_cov, list(~ mean(.)))
 
-Baseline_summary_all <- dplyr::full_join(Baseline_summary_n, Baseline_summary, by="Treatment")
-Baseline_summary_all
+# baseline data for the comparator study
+baseline_summary$Comparator <- select(target_pop_standard, match_cov)
 
-Baseline_summary <- cbind(Baseline_summary_all %>% select(-c(match_cov)),
-                          lapply(Baseline_summary_all %>% select(match_cov), 
-                                 sprintf, fmt = "%.2f") %>% 
-                            as.data.frame())
-Baseline_summary
+# Combine the three summaries
+# Takes a list of data frames and binds these together
+trt <- names(baseline_summary)
+baseline_summary <- dplyr::bind_rows(baseline_summary) %>%
+  transmute_all(sprintf, fmt = "%.2f") %>% #apply rounding for presentation
+  mutate(ARM = trt) %>% #Add treatment labels
+  select(ARM, match_cov)
 
-# replace N with ESS
-Baseline_summary$`N/ESS`[Baseline_summary$Treatment == "Intervention_unadjusted"] <- ESS
-Baseline_summary
+# Count the number of patients in the unweighted data
+summary_n <- est_weights$analysis_data %>%
+  dplyr::group_by(ARM) %>%
+  dplyr::summarise('N' = n())
+
+# Combine sample sizes with summary data
+baseline_summary <- full_join(baseline_summary, summary_n) %>%
+  select(ARM, `N/ESS` = N, match_cov)
+
+# Insert the ESS as the sample size for the weighted data
+# This is calculated above but can also be obtained using the estimate_ess function as shown below
+baseline_summary$`N/ESS`[baseline_summary$ARM == "Intervention_weighted"] <- est_weights$analysis_data %>%
+  filter(ARM == 'Intervention') %>%
+  estimate_ess(wt_col = 'wt')
+baseline_summary
 
 ```
 
-\
 
 # Incorporation of the weights in statistical analysis
 
 ## Estimating the relative effect 
 Using the weights derived above, relative effects can be estimated using:
 
-* <tt>coxph</tt> via the use of the <tt>weights</tt> statement to estimate a weighted HR
-* <tt>glm</tt> via the use of the <tt>weight</tt> statement to estimate a weighted OR
+* <tt>coxph</tt> for time to event endpoints via the use of the <tt>weights</tt>
+statement to estimate a weighted HR from a Cox proportional hazards model
+* <tt>glm</tt> for binary endpoints via the use of the <tt>weight</tt> statement
+to estimate a weighted OR from logistic regression 
 
 It is important to report the weighted relative effect with the unweighted
-relative effect for the reader to understand how the weighting has affected the
+relative effect to understand how the weighting has affected the
 analysis.
 
 ### Bootstrapping a confidence interval
@@ -494,7 +522,7 @@ interval (CI) from the bootstrap samples were explored:
     * This method attempts to correct for any bias and skewness in the distribution of bootstrap estimates and can be implemented using <tt>type="bca"</tt> statement in the <tt>boot.ci</tt> function)
 
 ### Example for survival data
-In this example, the weighted HR 0.29 (95% CI: 0.21, 0.39) is of larger
+In this example, the weighted HR 0.29 (95% CI: 0.21, 0.39) shows a larger difference between treatments
 magnitude than the unweighted HR 0.37 (95% CI: 0.30, 0.46). The median of the
 bootstrap HR samples is the same as the HR from the weighted Cox model to two
 decimel places (HR is 0.29). The bootstrap percentile CI (0.21, 0.36) is
@@ -524,6 +552,8 @@ HR_CI_cox_wtd
 ## Bootstrapping 
 
 # Separate data into intervention data and comparator data
+# The boostrap_HR function below makes use of the estimate_weights fucntion
+# which requires separate datasets
 int <- filter(est_weights$analysis_data, ARM == 'Intervention')
 comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
 
@@ -537,6 +567,7 @@ HR_bootstraps <- boot(data = int, # intervention data
                       )
 
 # Summarize bootstrap estimates in a histogram
+# Vertical lines indicate the median and upper and lower CIs
 hist(HR_bootstraps$t, main = "", xlab = "Boostrapped HR")
 abline(v= quantile(HR_bootstraps$t, probs = c(0.025, 0.5, 0.975)), lty=2)
 
@@ -552,8 +583,7 @@ boot_ci_HR_BCA <- boot.ci(boot.out = HR_bootstraps, index=1, type="bca")
 ## Summary
 
 # Produce a summary of HRs and CIs
-HR_summ <-  # Unweighted and weights HRs and CIs from Cox models
-            rbind(HR_CI_cox, HR_CI_cox_wtd) %>%
+HR_summ <-  rbind(HR_CI_cox, HR_CI_cox_wtd) %>% # Unweighted and weights HRs and CIs from Cox models
             dplyr::rename(HR = `exp(coef)`, 
                           HR_low_CI = `lower .95`, 
                           HR_upp_CI = `upper .95`) %>%
@@ -572,7 +602,7 @@ HR_summ <-  # Unweighted and weights HRs and CIs from Cox models
                              "HR_upp_CI" = boot_ci_HR_BCA$bca[5], 
                              "Method"="Bootstrap median HR (95% BCa CI)")) %>%
             
-            # Format HR and CI in one variable
+            # Format HR and CI in one variable, rounded to 3 decimal places
             dplyr::mutate(HR_95_CI = paste0(sprintf('%.3f', HR), 
                                             " (", 
                                             sprintf('%.3f', HR_low_CI), 
@@ -580,7 +610,7 @@ HR_summ <-  # Unweighted and weights HRs and CIs from Cox models
                                             sprintf('%.3f', HR_upp_CI), 
                                             ")")
                           ) %>%
-            dplyr::select(Method, HR_95_CI)
+            dplyr::select(Method, 'HR (95% CI)' = HR_95_CI)
 HR_summ
 
 
@@ -589,21 +619,26 @@ HR_summ
 The code below plots the Kaplan-Meier data.
 
 ```{r}
+# Unweighted intervention data
 KM_int <- survfit(formula = Surv(Time, Event==1) ~ 1 , 
                   data = int, 
                   type="kaplan-meier")
+# Weighted intervention data
 KM_int_wtd <- survfit(formula = Surv(Time, Event==1) ~ 1 , 
                   data = int, 
                   weights = wt,
                   type="kaplan-meier")
+# Comparator data
 KM_comp <- survfit(formula = Surv(Time, Event==1) ~ 1 , 
                   data = comp, 
                   type="kaplan-meier")
 
+# Combine the survfit objects ready for ggsurvplot
 KM_list <- list(Intervention = KM_int, 
                 Intervention_weighted = KM_int_wtd, 
                 Comparator = KM_comp)
 
+# Produce the Kaplan-Meier plot
 KM_plot <- ggsurvplot(KM_list, 
                       combine = TRUE, 
                       risk.table=T, # numbers at risk displayed on the plot
@@ -622,15 +657,16 @@ KM_plot
 
 ### Example for response data
 In this example, the weighted OR 3.79 (95% CI: 2.56, 5.60) is of smaller
-magnitude than the unweighted OR 5.32 (95% CI: 3.89, 7.27). The median of the
-bootstrap OR samples was similar to the OR from the weighted logistic regression
-model to two decimel places (the median OR from the bootstrap samples was 3.81
-compared with the OR of 3.79 from the weighted logistic regression model). Both
-the lower CI and upper CI (2.41, 5.10) from the bootstrap percentile CI are
-lower than that of the CI produced from the weighted logistic regression model
-(2.56, 5.60). Finally, it should be noted that results are relatively consistent
-across all methods, the intervention treatment significantly increases the odds
-of response compared with the comparator treatment.
+magnitude than the unweighted OR 5.32 (95% CI: 3.89, 7.27) indicating a smaller
+difference between treatments. The median of the bootstrap OR samples was
+similar to the OR from the weighted logistic regression model to two decimel
+places. The median OR from the bootstrap samples was 3.81 compared with the OR
+of 3.79 from the weighted logistic regression model. Both the confidence
+interval from the bootstrap percentiles is narrower (2.41 to 5.10) than the
+interval from the weighted logistic regression model (2.56 to 5.60). Finally, it
+should be noted that results are relatively consistent across all methods, the
+intervention treatment significantly increases the odds of response compared
+with the comparator treatment.
 ```{r}
 ## Calculate ORs
 
@@ -667,6 +703,8 @@ OR_CI_logit_wtd
 ## Bootstrapping
 
 # Separate data into intervention data and comparator data
+# The boostrap_OR function below makes use of the estimate_weights fucntion
+# which requires separate datasets
 int <- filter(est_weights$analysis_data, ARM == 'Intervention')
 comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
 
@@ -680,6 +718,7 @@ OR_bootstraps <- boot(data = int, # intervention data
                       )
 
 # Summarize bootstrap estimates in a histogram
+# Vertical lines indicate the median and upper and lower CIs
 hist(OR_bootstraps$t, main = "", xlab = "Boostrapped OR")
 abline(v= quantile(OR_bootstraps$t, probs = c(0.025,0.5,0.975)), lty=2)
 
@@ -696,8 +735,7 @@ boot_ci_OR_BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type="bca")
 ## Summary
 
 # Produce summary of ORs and CIs
-OR_summ <-  # Unweighted and weighted ORs and CIs from logistic regression models
-            rbind(OR_CI_logit, OR_CI_logit_wtd) %>%
+OR_summ <-  rbind(OR_CI_logit, OR_CI_logit_wtd) %>% # Unweighted and weighted ORs and CIs from logistic regression models
             as.data.frame() %>%
             dplyr::rename(OR = `Odds ratio`, OR_low_CI = `2.5 %`, OR_upp_CI = `97.5 %`) %>%
             mutate(Method = c("OR (95% CI) from unadjusted logistic regression model", 
@@ -715,7 +753,7 @@ OR_summ <-  # Unweighted and weighted ORs and CIs from logistic regression model
                              "OR_upp_CI" = boot_ci_OR_BCA$bca[5], 
                              "Method"="Bootstrap median HR (95% BCa CI)")) %>%
   
-            # Format OR and CI in one variable
+            # Format OR and CI in one variable, rounded to 3 decimal places
             dplyr::mutate(OR_95_CI = paste0(sprintf('%.3f', OR), 
                                             " (", 
                                             sprintf('%.3f', OR_low_CI), 
