@@ -178,14 +178,14 @@ For the matching variables:
 #### Intervention data
 
 # Read in ADaM data and rename variables of interest
-adsl <- read.csv(file.path(data_path, "adsl.csv")) %>% # Data containing the matching variables
+adsl <- data(adsl) %>% # Data containing the matching variables
   dplyr::mutate(SEX=ifelse(SEX=="Male", 1, 0)) # Coded 1 for males and 0 for females
 
-adrs <- read.csv(file.path(data_path, "adrs.csv")) %>% # Response data
+adrs <- data(adrs) %>% # Response data
   dplyr::filter(PARAM=="Response") %>%
   dplyr::select(USUBJID, ARM, Binary_event=AVAL) 
 
-adtte <- read.csv(file.path(data_path, "adtte.csv")) %>% # Time to event data
+adtte <- data(adtte.csv) %>% # Time to event data
   dplyr::filter(PARAMCD=="OS") %>%
   dplyr::mutate(Event=1-CNSR) %>%
   dplyr::select(USUBJID, ARM, Time=AVAL, Event)
