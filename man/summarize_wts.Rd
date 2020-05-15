@@ -4,7 +4,7 @@
 \alias{summarize_wts}
 \title{Summarize the weight values}
 \usage{
-summarize_wts(data, wt_col = "wt")
+summarize_wts(data, wt_col = "wt", rs_wt_col = "wt_rs")
 }
 \arguments{
 \item{data}{A data frame containing individual patient data from
@@ -14,9 +14,13 @@ using \code{\link{estimate_weights}}).}
 \item{wt_col}{The name of the weights column in the data frame containing the
 intervention individual patient data and the MAIC propensity weights. The
 default is wt.}
+
+\item{rs_wt_col}{The name of the rescaled weights column in the data frame
+containing the intervention individual patient data and the MAIC propensity
+weights. The default is wt_rs.}
 }
 \value{
-A data frame that includes a summary (minimum, maximum, median, mean) of the weights.
+A data frame that includes a summary (minimum, maximum, median, mean) of the weights and rescaled weights.
 }
 \description{
 Produce a summary of the weights (minimum, maximum, median, mean, SD). Mean

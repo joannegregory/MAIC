@@ -25,7 +25,7 @@ A list containing 2 objects. First, a data frame named analysis_data containing 
   Second, a vector called matching_vars of the matching variables names used.
 }
 \description{
-Estimate propensity weights for matched-adjusted indirect comparison (MAIC).
+Estimate propensity weights for matching-adjusted indirect comparison (MAIC).
 }
 \references{
 NICE DSU TECHNICAL SUPPORT DOCUMENT 18: METHODS FOR

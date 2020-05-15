@@ -85,7 +85,7 @@ estimate_weights <- function(intervention_data, comparator_data, matching_vars){
     dplyr::mutate(wt=1, wt_rs=1, ARM="Comparator")
 
   # Join comparator data with the intervention data
-  all_data <- rbind.fill(data_with_wts, comparator_data_wts)
+  all_data <- plyr::rbind.fill(data_with_wts, comparator_data_wts)
   all_data$ARM <- relevel(as.factor(all_data$ARM), ref="Comparator")
 
   # Outputs are:

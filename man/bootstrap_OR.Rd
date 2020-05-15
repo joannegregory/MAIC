@@ -7,7 +7,7 @@
 bootstrap_OR(intervention_data, comparator_data, matching, i, model)
 }
 \arguments{
-\item{intervention_data}{A data frame containing containing individual patient data from the intervention study.}
+\item{intervention_data}{A data frame containing individual patient data from the intervention study.}
 
 \item{comparator_data}{A data frame containing pseudo individual patient data from the comparator study.
 The outcome variables names must match intervention_data.}

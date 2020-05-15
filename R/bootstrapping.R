@@ -2,7 +2,7 @@
 #'
 #' A function required for the "statistic" argument in the \code{\link{boot}} function.
 #' Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted hazard ratio (HR) from a Cox proportional hazards model.
-#' @param intervention_data  A data frame containing containing individual patient data from the intervention study.
+#' @param intervention_data  A data frame containing individual patient data from the intervention study.
 #' @param comparator_data A data frame containing pseudo individual patient data from the comparator study.
 #'  The outcome variables names must match intervention_data.
 #' @param matching A character vector giving the names of the covariates to use
@@ -37,7 +37,7 @@ bootstrap_HR <- function(intervention_data, comparator_data, matching, i, model)
 #' A function required for the "statistic" argument in the \code{\link{boot}} function.
 #' Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted odds ratio (OR) from a binomial generalised linear model.
 #'
-#' @param intervention_data  A data frame containing containing individual patient data from the intervention study.
+#' @param intervention_data  A data frame containing individual patient data from the intervention study.
 #' @param comparator_data A data frame containing pseudo individual patient data from the comparator study.
 #'  The outcome variables names must match intervention_data.
 #' @param matching A character vector giving the names of the covariates to use

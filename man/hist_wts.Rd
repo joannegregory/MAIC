@@ -17,7 +17,9 @@ default is wt.}
 
 \item{rs_wt_col}{The name of the rescaled weights column in the data frame
 containing the intervention individual patient data and the MAIC propensity
-weights. The default is wt_rs}
+weights. The default is wt_rs.}
+
+\item{bin}{Number of bins to plot histogram. The default is 30.}
 }
 \value{
 A histogram plot of the weights and rescaled weights.

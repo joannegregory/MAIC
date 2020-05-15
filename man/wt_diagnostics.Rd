@@ -13,20 +13,20 @@ using estimate_weights).}
 
 \item{wt_col}{The name of the weights column in the data frame containing the
 intervention individual patient data and the MAIC propensity weights. The
-default is 'wt'.}
+default is wt.}
 
-\item{vars}{A character vector giving the variable names of the baseline characteristics. These names must match the column names in
-data.}
+\item{vars}{A character vector giving the variable names of the baseline
+characteristics. These names must match the column names in data.}
 
 \item{rs_wt_col}{The name of the rescaled weights column in the data frame
 containing the intervention individual patient data and the MAIC propensity
-weights. The default is wt_rs}
+weights. The default is wt_rs.}
 }
 \value{
 List of the following:
 \itemize{
   \item The effective sample size (ESS) as a numeric value.
-  \item A data frame that includes a summary (minimum, maximum, median, mean) of the weights.
+  \item A data frame that includes a summary (minimum, maximum, median, mean) of the weights and rescaled weights.
   \item A data frame that includes a summary of patient characteristics
   associated with each weight value.
 }
