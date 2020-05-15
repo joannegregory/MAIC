@@ -70,12 +70,12 @@ MAIC methods are often required when:
 * There is no common comparator treatment to link a clinical trial of a new
 intervention to clinical trials of other treatments in a given disease area. For
 example if the only study of a new intervention is a single arm trial with no
-control group. This is commonly referred to as an unanchored MAIC
+control group. This is commonly referred to as an unanchored MAIC.
 * A common comparator is available to link a clinical trial of a new
 intervention to a clinical trial of one other treatment in a given disease area
 but there are substantial differences in patient demographic or disease
 characteristics that are believed to be either prognostic or treatment effect
-modifiers. This is commonly referred to as an anchored MAIC
+modifiers. This is commonly referred to as an anchored MAIC.
 
 The premise of MAIC methods is to adjust for between-trial differences in
 patient demographic or disease characteristics at baseline. When a common
@@ -132,25 +132,16 @@ library(ggplot2)
 library(survminer)
 ```
 
-## Set up directories
-
-Define the following directories:
-
-* The base directory (the folder that includes all relevant data and where the results will be saved)
-* The data directory (where the data is saved)
-
-```{r}
-base_dir <- 'G:/Clients/Roche/2797 Development of R Code for MAIC and mixture cure models/Project'
-data_path <- file.path(base_dir,'2 Exploratory/Simulated datasets')
-```
 
 ## Read in the data
 
-To perform anchored MAICs, the following data is required:
+To perform unanchored MAICs, the following data is required:
 
 * Individual patient data (IPD) from the intervention trial
 * Pseudo data for the comparator trial
 * Baseline data from the comparator trial
+
+Simulated data for the above is provided with the MAIC package.
 
 ### Intervention trial IPD
 This example reads in and combines data from three standard simulated data
@@ -178,14 +169,20 @@ For the matching variables:
 #### Intervention data
 
 # Read in ADaM data and rename variables of interest
-adsl <- data(adsl) %>% # Data containing the matching variables
+
+adsl <- read.csv(system.file("extdata", "adsl.csv", package = "MAIC", mustWork = TRUE))
+adrs <- read.csv(system.file("extdata", "adrs.csv", package = "MAIC", mustWork = TRUE))
+adtte <- read.csv(system.file("extdata", "adtte.csv", package = "MAIC", mustWork = TRUE))
+
+
+adsl <- adsl %>% # Data containing the matching variables
   dplyr::mutate(SEX=ifelse(SEX=="Male", 1, 0)) # Coded 1 for males and 0 for females
 
-adrs <- data(adrs) %>% # Response data
+adrs <- adrs %>% # Response data
   dplyr::filter(PARAM=="Response") %>%
   dplyr::select(USUBJID, ARM, Binary_event=AVAL) 
 
-adtte <- data(adtte.csv) %>% # Time to event data
+adtte <- adtte %>% # Time to event data
   dplyr::filter(PARAMCD=="OS") %>%
   dplyr::mutate(Event=1-CNSR) %>%
   dplyr::select(USUBJID, ARM, Time=AVAL, Event)
@@ -221,7 +218,8 @@ data and not actual observed data.
 #### Comparator pseudo data
 
 # Read in digitised pseudo survival data
-comparator_surv <- read.csv(file.path(data_path,"psuedo_IPD.csv"))
+comparator_surv <- read.csv(system.file("extdata", "psuedo_IPD.csv", package = "MAIC", mustWork = TRUE))
+
 
 # Simulate response data based on the known proportion of responders
 comparator_n <- nrow(comparator_surv) # total number of patients in the comparator data
@@ -246,8 +244,7 @@ intervention data (<tt>intervention_input</tt>).
 
 ```{r}
 # Baseline aggregate data for the comparator population
-target_pop <- read.csv(file.path(data_path,"Aggregate data.csv"))
-target_pop
+target_pop <- read.csv(system.file("extdata", "Aggregate data.csv", package = "MAIC", mustWork = TRUE))
 
 # Renames target population cols to be consistent with match_cov
 match_cov
