@@ -16,7 +16,7 @@ gradfn <- function(a1, X){
 
 #' Estimate MAIC propensity weights
 #'
-#' Estimate propensity weights for matched-adjusted indirect comparison (MAIC).
+#' Estimate propensity weights for matching-adjusted indirect comparison (MAIC).
 #'
 #' @param intervention_data A data frame containing individual patient data from the intervention study.
 #' @param comparator_data  A data frame containing pseudo individual patient data from the comparator study.
@@ -140,18 +140,22 @@ estimate_ess <- function(data, wt_col="wt"){
 #' @param wt_col The name of the weights column in the data frame containing the
 #'   intervention individual patient data and the MAIC propensity weights. The
 #'   default is wt.
+#' @param rs_wt_col The name of the rescaled weights column in the data frame
+#'   containing the intervention individual patient data and the MAIC propensity
+#'   weights. The default is wt_rs.
 #'
-#' @return A data frame that includes a summary (minimum, maximum, median, mean) of the weights.
+#' @return A data frame that includes a summary (minimum, maximum, median, mean) of the weights and rescaled weights.
 #'
 #' @seealso \code{\link{estimate_weights}}
 #' @export
-summarize_wts <- function(data, wt_col="wt"){
+summarize_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs"){
   summary <- data.frame(
-    mean = mean(data[,wt_col]),
-    sd = sd(data[,wt_col]),
-    median = median(data[,wt_col]),
-    min = min(data[,wt_col]),
-    max = max(data[,wt_col])
+    type = c("Weights", "Rescaled weights"),
+    mean = c(mean(data[,wt_col]), mean(data[,rs_wt_col])),
+    sd = c(sd(data[,wt_col]), sd(data[,rs_wt_col])),
+    median = c(median(data[,wt_col]), median(data[,rs_wt_col])),
+    min = c(min(data[,wt_col]), min(data[,rs_wt_col])),
+    max = c(max(data[,wt_col]), max(data[,rs_wt_col]))
   )
   return(summary)
 }
@@ -169,7 +173,8 @@ summarize_wts <- function(data, wt_col="wt"){
 #'   default is wt.
 #' @param rs_wt_col The name of the rescaled weights column in the data frame
 #'   containing the intervention individual patient data and the MAIC propensity
-#'   weights. The default is wt_rs
+#'   weights. The default is wt_rs.
+#' @param bin Number of bins to plot histogram. The default is 30.
 #'
 #' @return A histogram plot of the weights and rescaled weights.
 #'
@@ -214,9 +219,9 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 #'   default is wt.
 #' @param rs_wt_col The name of the rescaled weights column in the data frame
 #'   containing the intervention individual patient data and the MAIC propensity
-#'   weights. The default is wt_rs
-#' @param vars A character vector giving the variable names of the baseline characteristics. These names must match the column names in
-#'   data.
+#'   weights. The default is wt_rs.
+#' @param vars A character vector giving the variable names of the baseline
+#'   characteristics. These names must match the column names in data.
 #'
 #' @return A data frame that includes a summary of patient characteristics
 #'   associated with each weight value.
@@ -247,24 +252,24 @@ profile_wts <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
 #'   using estimate_weights).
 #' @param wt_col The name of the weights column in the data frame containing the
 #'   intervention individual patient data and the MAIC propensity weights. The
-#'   default is 'wt'.
+#'   default is wt.
 #' @param rs_wt_col The name of the rescaled weights column in the data frame
 #'   containing the intervention individual patient data and the MAIC propensity
-#'   weights. The default is wt_rs
-#' @param vars A character vector giving the variable names of the baseline characteristics. These names must match the column names in
-#'   data.
+#'   weights. The default is wt_rs.
+#' @param vars A character vector giving the variable names of the baseline
+#'   characteristics. These names must match the column names in data.
 #'
 #' @return List of the following:
 #' \itemize{
 #'   \item The effective sample size (ESS) as a numeric value.
-#'   \item A data frame that includes a summary (minimum, maximum, median, mean) of the weights.
+#'   \item A data frame that includes a summary (minimum, maximum, median, mean) of the weights and rescaled weights.
 #'   \item A data frame that includes a summary of patient characteristics
 #'   associated with each weight value.
 #' }
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{estimate_ess}}, \code{\link{summarize_wts}}, \code{\link{profile_wts}}
 #' @export
-wt_diagnostics <- function(data, wt_col="wt", wt_rs="wt_rs",vars){
+wt_diagnostics <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
 
   # ESS
   ESS <- estimate_ess(data, wt_col)
