@@ -648,10 +648,12 @@ treatment effect (HR further from 1) than the unweighted HR 0.37 (95% CI: 0.30,
 0.46). The median of the bootstrap HR samples is the same as the HR from the
 weighted Cox model to two decimal places (HR is 0.29). The bootstrap percentile
 CI (0.21, 0.36) is slightly narrower than that of the CI produced from the
-weighted Cox model (0.21, 0.39). Finally, it should be noted that results are
-relatively consistent across all methods, the intervention treatment
-significantly reduces the hazard of death compared with the comparator
-treatment.
+weighted Cox model (0.21, 0.39). In this example, the percentile CI (0.21, 0.36)
+and BCa confidence interval (0.22, 0.38) are similar suggesting the bootstrap
+samples are relatively normally distributed (see [diagnostics](#bshr)). Finally,
+it should be noted that results are relatively consistent across all methods,
+the intervention treatment significantly reduces the hazard of death compared
+with the comparator treatment.
 ```{r}
 ## Calculate HRs
 
@@ -742,11 +744,11 @@ HR_table
 
 ```
 
-### Bootstrapping diagnostics
+### Bootstrapping diagnostics {#bshr}
 
 To test the distribution of the bootstrapped HRs, a histogram can be plotted. If
-the plot does not appear normally distributed, this suggests the BCa approach is
-more appropriate.
+the plot does not appear normally distributed, this may suggest that the BCa
+approach is more appropriate than the percentile approch.
 
 
 ```{r}
@@ -759,18 +761,21 @@ abline(v= quantile(HR_bootstraps$t, probs = c(0.025, 0.5, 0.975)), lty=2)
 ```
 
 ## Example for response data
+
 ### Estimating the odds ratio (OR)
 In this example, the weighted OR 3.79 (95% CI: 2.56, 5.60) shows a smaller
 treatment effect (closer to 1) than the unweighted OR 5.32 (95% CI: 3.89, 7.27)
 indicating a smaller difference between treatments. The median of the bootstrap
 OR samples was similar to the OR from the weighted logistic regression model to
 two decimal places. The median OR from the bootstrap samples was 3.81 compared
-with the OR of 3.79 from the weighted logistic regression model. Both the
-confidence interval from the bootstrap percentiles is narrower (2.41 to 5.10)
-than the interval from the weighted logistic regression model (2.56 to 5.60).
-Finally, it should be noted that results are relatively consistent across all
-methods, the intervention treatment significantly increases the odds of response
-compared with the comparator treatment.
+with the OR of 3.79 from the weighted logistic regression model. The bootstrap
+percentile CI is narrower (2.41 to 5.10) than that from the weighted logistic
+regression model (2.56 to 5.60). For this endpoint, the percentile CI (2.41 to
+5.10) and BCa confidence interval (2.59, 5.44) are slightly different suggesting
+there may be some bias or skew in the distribution of bootstrap OR samples (see
+[diagnostics](#bsor)). Finally, it should be noted that results are relatively
+consistent across all methods, the intervention treatment significantly
+increases the odds of response compared with the comparator treatment.
 
 When deriving the weighted OR using the GLM, the warnings have been supressed,
 since the function expects integer values for response (i.e. 1 or 0) however,
@@ -886,9 +891,11 @@ OR_table
 
 ```
 
-### Bootstrapping diagnostics
+### Bootstrapping diagnostics {#bsor}
 
-To test the distribution of the bootstrapped ORs, a histogram can be plotted. If the plot does not appear normally distributed, this suggests the BCa approach is more appropriate.
+To test the distribution of the bootstrapped ORs, a histogram can be plotted. If
+the plot does not appear normally distributed, this may suggest that the BCa
+approach is more appropriate than the percentile approch.
 
 
 ```{r}
