@@ -55,7 +55,7 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-This document describes the steps required to perform an matching-adjusted
+This document describes the steps required to perform a matching-adjusted
 indirect comparison (MAIC) analysis using the <tt>MAIC</tt> package in R for a
 disconnected treatment network where the endpoint of interest is either
 time-to-event (e.g. overall survival) or binary (e.g. objective tumor
@@ -113,7 +113,7 @@ available are:
 
 * Individual patient data from a single arm study of 'intervention'
 * Aggregate summary data for 'comparator'. This could be from a single arm study of
-the comparator or from one arm of a randomised controlled trial.
+the comparator or from one arm of a randomized controlled trial.
 
 In this example scenario, age, sex, the Eastern Cooperative Oncology Group
 performance status (ECOG PS) and smoking status have been identified as
@@ -582,12 +582,12 @@ interval (CI) from the bootstrap samples were explored:[@efron1994; @diciccio199
     * This method takes the 2.5th and 97.5th percentiles and can be implemented using the <tt>type="norm"</tt> statement in the <tt>boot.ci</tt> function
 * Bias-corrected and accelerated (BCa) CIs 
     * This method attempts to correct for any bias and skewness in the distribution of bootstrap estimates and can be implemented using <tt>type="bca"</tt> statement in the <tt>boot.ci</tt> function)
-    * The BCa method also takes percentiles but they are not necessarily the 2.5th and 97.5th percentiles (the choice of percentiles depends on an acceleration parameter [estimated thorugh jackknife resampling] and a bias correction factor [proportion of bootstrap estimates less than the original estimator])
+    * The BCa method also takes percentiles but they are not necessarily the 2.5th and 97.5th percentiles (the choice of percentiles depends on an acceleration parameter [estimated through jackknife re-sampling] and a bias correction factor [proportion of bootstrap estimates less than the original estimator])
 
 ## Example for survival data
 ### Kaplan-Meier plot
 
-To visualise the effect of the weighting compared to the unadjusted data, it is
+To visualize the effect of the weighting compared to the unadjusted data, it is
 useful to plot a Kaplan-Meier. The figure below shows there is a clear treatment
 benefit of the intervention compared to the comparator. The treatment effect
 increases once the data is weighted. This treatment effect is quantified in the
@@ -748,7 +748,7 @@ HR_table
 
 To test the distribution of the bootstrapped HRs, a histogram can be plotted. If
 the plot does not appear normally distributed, this may suggest that the BCa
-approach is more appropriate than the percentile approch.
+approach is more appropriate than the percentile approach.
 
 
 ```{r}
@@ -777,7 +777,7 @@ there may be some bias or skew in the distribution of bootstrap OR samples (see
 consistent across all methods, the intervention treatment significantly
 increases the odds of response compared with the comparator treatment.
 
-When deriving the weighted OR using the GLM, the warnings have been supressed,
+When deriving the weighted OR using the GLM, the warnings have been suppressed,
 since the function expects integer values for response (i.e. 1 or 0) however,
 when the weights function is used, the response values are no longer a integer
 value.
@@ -895,7 +895,7 @@ OR_table
 
 To test the distribution of the bootstrapped ORs, a histogram can be plotted. If
 the plot does not appear normally distributed, this may suggest that the BCa
-approach is more appropriate than the percentile approch.
+approach is more appropriate than the percentile approach.
 
 
 ```{r}
