@@ -181,16 +181,16 @@ adtte <- read.csv(system.file("extdata", "adtte.csv", package = "MAIC", mustWork
 
 
 adsl <- adsl %>% # Data containing the matching variables
-  dplyr::mutate(SEX=ifelse(SEX=="Male", 1, 0)) # Coded 1 for males and 0 for females
+  mutate(SEX=ifelse(SEX=="Male", 1, 0)) # Coded 1 for males and 0 for females
 
 adrs <- adrs %>% # Response data
-  dplyr::filter(PARAM=="Response") %>%
-  dplyr::select(USUBJID, ARM, response=AVAL) 
+  filter(PARAM=="Response") %>%
+  select(USUBJID, ARM, response=AVAL) 
 
 adtte <- adtte %>% # Time to event data (overall survival)
-  dplyr::filter(PARAMCD=="OS") %>%
-  dplyr::mutate(Event=1-CNSR) %>%
-  dplyr::select(USUBJID, ARM, Time=AVAL, Event)
+  filter(PARAMCD=="OS") %>%
+  mutate(Event=1-CNSR) %>%
+  select(USUBJID, ARM, Time=AVAL, Event)
 
 # Combine all intervention data
 intervention_input <- full_join(full_join(adsl,adrs, by=c("USUBJID", "ARM")), adtte, 
@@ -264,14 +264,14 @@ match_cov
 names(target_pop)
 target_pop_standard <- target_pop %>%
   #EDIT
-  dplyr::rename(N=N,
+  rename(N=N,
                 Treatment="ARM",
                 AGE=age.mean,
                 SEX=prop.male,
                 SMOKE=prop.smoke,
                 ECOG0=prop.ecog0
   ) %>%
-  dplyr::select(N, Treatment, all_of(match_cov))
+  select(N, Treatment, all_of(match_cov))
 
 ```
 
@@ -318,7 +318,7 @@ below.
 names(intervention_input)
 intervention_data <- 
   intervention_input %>%
-        dplyr::mutate(Age_centered = AGE - target_pop$age.mean,
+        mutate(Age_centered = AGE - target_pop$age.mean,
                       # matching on both mean and standard deviation for continuous variables:
                       Age_squared_centered = (AGE^2) - (target_pop$age.mean^2 + target_pop$age.sd^2),
                       Sex_centered = SEX - target_pop$prop.male,
@@ -403,7 +403,7 @@ It is easier to examine the distribution of the weights by scaling them, so that
 the rescaled weights are relative to the original unit weights of each
 individual. In other words, a rescaled weight $>$ 1 means that an individual
 carries more weight in the re-weighted population than the original data and a
-rescaled weight $<$ 1 means that an individual carries more weight in the
+rescaled weight $<$ 1 means that an individual carries less weight in the
 re-weighted population than the original data. The rescaled weights are
 calculated as:
 
@@ -487,14 +487,14 @@ baseline_summary <- list('Intervention_weighted' = NA, 'Intervention' = NA, 'Com
 # Summarise matching variables for weighted intervention data
 baseline_summary$Intervention_weighted <- est_weights$analysis_data %>% 
   filter(ARM=="Intervention") %>%
-  dplyr::select(all_of(match_cov), wt) %>%
-  dplyr::summarise_at(match_cov, list(~ weighted.mean(., wt)))
+  select(all_of(match_cov), wt) %>%
+  summarise_at(match_cov, list(~ weighted.mean(., wt)))
 
 # Summarise matching variables for unweighted intervention data
 baseline_summary$Intervention <- est_weights$analysis_data %>% 
   filter(ARM=="Intervention") %>%
-  dplyr::select(all_of(match_cov), wt) %>%
-  dplyr::summarise_at(match_cov, list(~ mean(.)))
+  select(all_of(match_cov), wt) %>%
+  summarise_at(match_cov, list(~ mean(.)))
 
 # baseline data for the comparator study
 baseline_summary$Comparator <- select(target_pop_standard, all_of(match_cov))
@@ -502,16 +502,16 @@ baseline_summary$Comparator <- select(target_pop_standard, all_of(match_cov))
 # Combine the three summaries
 # Takes a list of data frames and binds these together
 trt <- names(baseline_summary)
-baseline_summary <- dplyr::bind_rows(baseline_summary) %>%
+baseline_summary <- bind_rows(baseline_summary) %>%
   transmute_all(sprintf, fmt = "%.2f") %>% #apply rounding for presentation
   mutate(ARM = as.character(trt)) %>% #Add treatment labels
   select(ARM, all_of(match_cov))
 
 # Count the number of patients in the unweighted data
 summary_n <- est_weights$analysis_data %>%
-  dplyr::group_by(ARM) %>%
-  dplyr::summarise('N' = n()) %>%
-  dplyr::mutate(ARM = as.character(ARM))
+  group_by(ARM) %>%
+  summarise('N' = n()) %>%
+  mutate(ARM = as.character(ARM))
 
 # Combine sample sizes with summary data
 baseline_summary <- full_join(baseline_summary, summary_n) %>%
@@ -665,7 +665,7 @@ unweighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_
 
 HR_CI_cox <- summary(unweighted_cox)$conf.int %>% 
               as.data.frame() %>%
-              dplyr::select(-`exp(-coef)`)
+              select(-`exp(-coef)`)
 HR_CI_cox
 
 # Fit a Cox model with weights to estimate the weighted HR
@@ -673,7 +673,7 @@ weighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_da
 
 HR_CI_cox_wtd <- summary(weighted_cox)$conf.int %>% 
                   as.data.frame() %>%
-                  dplyr::select(-`exp(-coef)`)
+                  select(-`exp(-coef)`)
 HR_CI_cox_wtd
 
 ## Bootstrapping 
@@ -700,7 +700,7 @@ boot_ci_HR_BCA <- boot.ci(boot.out = HR_bootstraps, index=1, type="bca")
 
 # Produce a summary of HRs and CIs
 HR_summ <-  rbind(HR_CI_cox, HR_CI_cox_wtd) %>% # Unweighted and weights HRs and CIs from Cox models
-            dplyr::rename(HR = `exp(coef)`, 
+            rename(HR = `exp(coef)`, 
                           HR_low_CI = `lower .95`, 
                           HR_upp_CI = `upper .95`) %>%
             mutate(Method = c("HR (95% CI) from unadjusted Cox model", 
@@ -719,14 +719,14 @@ HR_summ <-  rbind(HR_CI_cox, HR_CI_cox_wtd) %>% # Unweighted and weights HRs and
                              "Method"="Bootstrap median HR (95% BCa CI)")) %>%
             
             # Format HR and CI in one variable, rounded to 3 decimal places
-            dplyr::mutate(HR_95_CI = paste0(sprintf('%.3f', HR), 
+            mutate(HR_95_CI = paste0(sprintf('%.3f', HR), 
                                             " (", 
                                             sprintf('%.3f', HR_low_CI), 
                                             ", ", 
                                             sprintf('%.3f', HR_upp_CI), 
                                             ")")
                           ) %>%
-            dplyr::select(Method, HR_95_CI)   
+            select(Method, HR_95_CI)   
 
 # turns the results to a table suitable for word/ powerpoint
 HR_table <- HR_summ %>%
@@ -850,7 +850,7 @@ boot_ci_OR_BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type="bca")
 # Produce summary of ORs and CIs
 OR_summ <-  rbind(OR_CI_logit, OR_CI_logit_wtd) %>% # Unweighted and weighted ORs and CIs
             as.data.frame() %>%
-            dplyr::rename(OR = `Odds ratio`, OR_low_CI = `2.5 %`, OR_upp_CI = `97.5 %`) %>%
+            rename(OR = `Odds ratio`, OR_low_CI = `2.5 %`, OR_upp_CI = `97.5 %`) %>%
             mutate(Method = c("OR (95% CI) from unadjusted logistic regression model", 
                               "OR (95% CI) from weighted logistic regression model")) %>%
   
@@ -867,7 +867,7 @@ OR_summ <-  rbind(OR_CI_logit, OR_CI_logit_wtd) %>% # Unweighted and weighted OR
                              "Method"="Bootstrap median HR (95% BCa CI)")) %>%
   
             # Format OR and CI in one variable, rounded to 3 decimal places
-            dplyr::mutate(OR_95_CI = paste0(sprintf('%.3f', OR), 
+            mutate(OR_95_CI = paste0(sprintf('%.3f', OR), 
                                             " (", 
                                             sprintf('%.3f', OR_low_CI), 
                                             ", ", 
@@ -875,7 +875,7 @@ OR_summ <-  rbind(OR_CI_logit, OR_CI_logit_wtd) %>% # Unweighted and weighted OR
                                             ")")
                           ) %>%
   
-            dplyr::select(Method, OR_95_CI)
+            select(Method, OR_95_CI)
 
 # turns the results to a table suitable for word/ powerpoint
 OR_table <- OR_summ %>%
