@@ -193,7 +193,8 @@ adtte <- adtte %>% # Time to event data (overall survival)
   dplyr::select(USUBJID, ARM, Time=AVAL, Event)
 
 # Combine all intervention data
-intervention_input <- full_join(full_join(adsl,adrs, by=c("USUBJID", "ARM")), adtte, by=c("USUBJID", "ARM"))
+intervention_input <- full_join(full_join(adsl,adrs, by=c("USUBJID", "ARM")), adtte, 
+                                by=c("USUBJID", "ARM"))
 head(intervention_input)
 
 # List out matching covariates
@@ -227,7 +228,8 @@ data and not actual observed data.
 #### Comparator pseudo data
 
 # Read in digitised pseudo survival data, col names must match intervention_input
-comparator_surv <- read.csv(system.file("extdata", "psuedo_IPD.csv", package = "MAIC", mustWork = TRUE)) %>%
+comparator_surv <- read.csv(system.file("extdata", "psuedo_IPD.csv", 
+                                        package = "MAIC", mustWork = TRUE)) %>%
   rename(Time=Time, Event=Event)
 
 
@@ -254,7 +256,8 @@ intervention data (<tt>intervention_input</tt>).
 
 ```{r}
 # Baseline aggregate data for the comparator population
-target_pop <- read.csv(system.file("extdata", "Aggregate data.csv", package = "MAIC", mustWork = TRUE))
+target_pop <- read.csv(system.file("extdata", "Aggregate data.csv", 
+                                   package = "MAIC", mustWork = TRUE))
 
 # Renames target population cols to be consistent with match_cov
 match_cov
@@ -440,7 +443,7 @@ the corresponding patient profile based on the matching variables. When matching
 on a continuous variable there will be multiple unique weights and the output
 from this function is less useful. When there is a small set of unique weights
 <tt>profile_wts</tt> is useful to describe those patients who have more or less
-influence on the weighted analyses.
+influence on the weighted analyses. 
 
 ```{r}
 wts_profile <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
@@ -463,7 +466,7 @@ the function <tt>wt_diagnostics</tt> which brings together the three functions:
 diagnostics <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
                 wt_diagnostics(vars = est_weights$matching_vars)
 
-ESS <- diagnostics$ESS
+diagnostics$ESS
 
 diagnostics$Summary_of_weights
 head(diagnostics$Weight_profiles)
@@ -845,7 +848,7 @@ boot_ci_OR_BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type="bca")
 ## Summary
 
 # Produce summary of ORs and CIs
-OR_summ <-  rbind(OR_CI_logit, OR_CI_logit_wtd) %>% # Unweighted and weighted ORs and CIs from logistic regression models
+OR_summ <-  rbind(OR_CI_logit, OR_CI_logit_wtd) %>% # Unweighted and weighted ORs and CIs
             as.data.frame() %>%
             dplyr::rename(OR = `Odds ratio`, OR_low_CI = `2.5 %`, OR_upp_CI = `97.5 %`) %>%
             mutate(Method = c("OR (95% CI) from unadjusted logistic regression model", 
