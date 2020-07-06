@@ -65,7 +65,7 @@ estimate_weights <- function(intervention_data, comparator_data, matching_vars){
   )
 
   # Optimise Q(b) using Newton-Raphson techniques
-  opt1 <- optim(par = rep(0,dim(intervention_data[,matching_vars])[2]),
+  opt1 <- optim(par = rep(0,dim(as.data.frame(intervention_data[,matching_vars]))[2]),
                 fn = objfn,
                 gr = gradfn,
                 X = as.matrix(intervention_data[,matching_vars]),
