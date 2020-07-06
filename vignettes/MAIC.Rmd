@@ -132,7 +132,6 @@ library(survival)
 library(MAIC)
 library(ggplot2)
 library(survminer)
-library(tidyselect)
 library(flextable)
 library(officer)
 
@@ -185,15 +184,15 @@ adsl <- adsl %>% # Data containing the matching variables
 
 adrs <- adrs %>% # Response data
   dplyr::filter(PARAM=="Response") %>%
-  dplyr::select(USUBJID, ARM, response=AVAL) 
+  dplyr::transmute(USUBJID, ARM, response=AVAL)
 
 adtte <- adtte %>% # Time to event data (overall survival)
   dplyr::filter(PARAMCD=="OS") %>%
   dplyr::mutate(Event=1-CNSR) %>%
-  dplyr::select(USUBJID, ARM, Time=AVAL, Event)
+  dplyr::transmute(USUBJID, ARM, Time=AVAL, Event)
 
 # Combine all intervention data
-intervention_input <- full_join(full_join(adsl,adrs, by=c("USUBJID", "ARM")), adtte, 
+intervention_input <- full_join(full_join(adsl,adrs, by=c("USUBJID", "ARM")), adtte,
                                 by=c("USUBJID", "ARM"))
 head(intervention_input)
 
@@ -228,7 +227,7 @@ data and not actual observed data.
 #### Comparator pseudo data
 
 # Read in digitised pseudo survival data, col names must match intervention_input
-comparator_surv <- read.csv(system.file("extdata", "psuedo_IPD.csv", 
+comparator_surv <- read.csv(system.file("extdata", "psuedo_IPD.csv",
                                         package = "MAIC", mustWork = TRUE)) %>%
   rename(Time=Time, Event=Event)
 
@@ -240,10 +239,10 @@ comparator_binary <- data.frame("response"=
                                   c(rep(1,comparator_n*comparator_prop_events),
                                     rep(0, comparator_n*(1-comparator_prop_events))))
 
-# Join survival and response comparator data 
+# Join survival and response comparator data
 # (note the rows do not represent observations from a particular patient)
 comparator_input <- cbind(comparator_surv, comparator_binary)
-
+head(comparator_input)
 
 ```
 
@@ -256,7 +255,7 @@ intervention data (<tt>intervention_input</tt>).
 
 ```{r}
 # Baseline aggregate data for the comparator population
-target_pop <- read.csv(system.file("extdata", "Aggregate data.csv", 
+target_pop <- read.csv(system.file("extdata", "Aggregate data.csv",
                                    package = "MAIC", mustWork = TRUE))
 
 # Renames target population cols to be consistent with match_cov
@@ -265,13 +264,14 @@ names(target_pop)
 target_pop_standard <- target_pop %>%
   #EDIT
   dplyr::rename(N=N,
-                Treatment="ARM",
+                Treatment=ARM,
                 AGE=age.mean,
                 SEX=prop.male,
                 SMOKE=prop.smoke,
                 ECOG0=prop.ecog0
   ) %>%
-  dplyr::select(N, Treatment, all_of(match_cov))
+  dplyr::transmute(N, Treatment, AGE, SEX, SMOKE, ECOG0)
+target_pop_standard
 
 ```
 
@@ -316,8 +316,7 @@ below.
 #### center baseline characteristics
 # (subtract the aggregate comparator data from the corresponding column of intervention PLD)
 names(intervention_input)
-intervention_data <- 
-  intervention_input %>%
+intervention_data <- intervention_input %>%
         dplyr::mutate(Age_centered = AGE - target_pop$age.mean,
                       # matching on both mean and standard deviation for continuous variables:
                       Age_squared_centered = (AGE^2) - (target_pop$age.mean^2 + target_pop$age.sd^2),
@@ -332,6 +331,7 @@ cent_match_cov <- c("Age_centered",
                     "Sex_centered",
                     "Smoke_centered",
                     "ECOG0_centered")
+
 
 
 ```
@@ -417,7 +417,7 @@ the data set by using the <tt>bin</tt> statement.
 ```{r}
 # Plot histograms of unscaled and rescaled weights
 # bin_width needs to be adapted depending on the sample size in the data set
-histogram <- est_weights$analysis_data %>% 
+histogram <- est_weights$analysis_data %>%
               filter(ARM == 'Intervention') %>%
               hist_wts(bin = 50)
 histogram
@@ -481,31 +481,29 @@ the intervention-treated patients match those aggregate characteristics from the
 comparator trial and outputs a summary that can be used for reporting.
 
 ```{r}
-# Create an object to hold the output
 baseline_summary <- list('Intervention_weighted' = NA, 'Intervention' = NA, 'Comparator' = NA)
 
 # Summarise matching variables for weighted intervention data
-baseline_summary$Intervention_weighted <- est_weights$analysis_data %>% 
+baseline_summary$Intervention_weighted <- est_weights$analysis_data %>%
   filter(ARM=="Intervention") %>%
-  dplyr::select(all_of(match_cov), wt) %>%
+  dplyr::transmute(AGE, SEX, SMOKE, ECOG0, wt) %>%
   dplyr::summarise_at(match_cov, list(~ weighted.mean(., wt)))
 
 # Summarise matching variables for unweighted intervention data
-baseline_summary$Intervention <- est_weights$analysis_data %>% 
+baseline_summary$Intervention <- est_weights$analysis_data %>%
   filter(ARM=="Intervention") %>%
-  dplyr::select(all_of(match_cov), wt) %>%
+  dplyr::transmute(AGE, SEX, SMOKE, ECOG0, wt) %>%
   dplyr::summarise_at(match_cov, list(~ mean(.)))
 
 # baseline data for the comparator study
-baseline_summary$Comparator <- select(target_pop_standard, all_of(match_cov))
+baseline_summary$Comparator <- transmute(target_pop_standard, AGE, SEX, SMOKE, ECOG0)
 
 # Combine the three summaries
 # Takes a list of data frames and binds these together
 trt <- names(baseline_summary)
 baseline_summary <- dplyr::bind_rows(baseline_summary) %>%
   transmute_all(sprintf, fmt = "%.2f") %>% #apply rounding for presentation
-  mutate(ARM = as.character(trt)) %>% #Add treatment labels
-  select(ARM, all_of(match_cov))
+  transmute(ARM = as.character(trt), AGE, SEX, SMOKE, ECOG0)
 
 # Count the number of patients in the unweighted data
 summary_n <- est_weights$analysis_data %>%
@@ -515,7 +513,7 @@ summary_n <- est_weights$analysis_data %>%
 
 # Combine sample sizes with summary data
 baseline_summary <- full_join(baseline_summary, summary_n) %>%
-  select(ARM, `N/ESS` = N, all_of(match_cov))
+  transmute(ARM, `N/ESS` = N, AGE, SEX, SMOKE, ECOG0)
 
 # Insert the ESS as the sample size for the weighted data
 # This is calculated above but can also be obtained using the estimate_ess function as shown below
@@ -582,7 +580,7 @@ Two different methods for estimating a 95% confidence
 interval (CI) from the bootstrap samples were explored:[@efron1994; @diciccio1996; @efron1987]
 
 * Percentile CIs 
-    * This method takes the 2.5th and 97.5th percentiles and can be implemented using the <tt>type="norm"</tt> statement in the <tt>boot.ci</tt> function
+    * This method takes the 2.5th and 97.5th percentiles and can be implemented using the <tt>type="perc"</tt> statement in the <tt>boot.ci</tt> function
 * Bias-corrected and accelerated (BCa) CIs 
     * This method attempts to correct for any bias and skewness in the distribution of bootstrap estimates and can be implemented using <tt>type="bca"</tt> statement in the <tt>boot.ci</tt> function)
     * The BCa method also takes percentiles but they are not necessarily the 2.5th and 97.5th percentiles (the choice of percentiles depends on an acceleration parameter [estimated through jackknife re-sampling] and a bias correction factor [proportion of bootstrap estimates less than the original estimator])
@@ -609,22 +607,22 @@ int <- filter(est_weights$analysis_data, ARM == 'Intervention')
 comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
 
 # Unweighted intervention data
-KM_int <- survfit(formula = Surv(Time, Event==1) ~ 1 , 
-                  data = int, 
+KM_int <- survfit(formula = Surv(Time, Event==1) ~ 1 ,
+                  data = int,
                   type="kaplan-meier")
 # Weighted intervention data
-KM_int_wtd <- survfit(formula = Surv(Time, Event==1) ~ 1 , 
-                  data = int, 
+KM_int_wtd <- survfit(formula = Surv(Time, Event==1) ~ 1 ,
+                  data = int,
                   weights = wt,
                   type="kaplan-meier")
 # Comparator data
-KM_comp <- survfit(formula = Surv(Time, Event==1) ~ 1 , 
-                  data = comp, 
+KM_comp <- survfit(formula = Surv(Time, Event==1) ~ 1 ,
+                  data = comp,
                   type="kaplan-meier")
 
 # Combine the survfit objects ready for ggsurvplot
-KM_list <- list(Intervention = KM_int, 
-                Intervention_weighted = KM_int_wtd, 
+KM_list <- list(Intervention = KM_int,
+                Intervention_weighted = KM_int_wtd,
                 Comparator = KM_comp)
 
 #Produce the Kaplan-Meier plot
@@ -663,22 +661,22 @@ with the comparator treatment.
 # Fit a Cox model without weights to estimate the unweighted HR
 unweighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_data)
 
-HR_CI_cox <- summary(unweighted_cox)$conf.int %>% 
+HR_CI_cox <- summary(unweighted_cox)$conf.int %>%
               as.data.frame() %>%
-              dplyr::select(-`exp(-coef)`)
+              dplyr::transmute(`exp(coef)`,`lower .95`,`upper .95`)
 HR_CI_cox
 
 # Fit a Cox model with weights to estimate the weighted HR
 weighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_data, weights = wt)
 
-HR_CI_cox_wtd <- summary(weighted_cox)$conf.int %>% 
+HR_CI_cox_wtd <- summary(weighted_cox)$conf.int %>%
                   as.data.frame() %>%
-                  dplyr::select(-`exp(-coef)`)
+                  dplyr::transmute(`exp(coef)`,`lower .95`,`upper .95`)
 HR_CI_cox_wtd
 
-## Bootstrapping 
+## Bootstrapping
 
-# Bootstrap 1000 HRs 
+# Bootstrap 1000 HRs
 HR_bootstraps <- boot(data = int, # intervention data
                       statistic = bootstrap_HR, # bootstrap the HR (defined in the MAIC package)
                       R=1000, # number of bootstrap samples
@@ -691,7 +689,7 @@ HR_bootstraps <- boot(data = int, # intervention data
 HR_median <- median(HR_bootstraps$t)
 
 # Bootstrap CI - Percentile CI
-boot_ci_HR <- boot.ci(boot.out = HR_bootstraps, index=1, type="norm") 
+boot_ci_HR <- boot.ci(boot.out = HR_bootstraps, index=1, type="perc")
 
 # Bootstrap CI - BCa CI
 boot_ci_HR_BCA <- boot.ci(boot.out = HR_bootstraps, index=1, type="bca")
@@ -700,43 +698,43 @@ boot_ci_HR_BCA <- boot.ci(boot.out = HR_bootstraps, index=1, type="bca")
 
 # Produce a summary of HRs and CIs
 HR_summ <-  rbind(HR_CI_cox, HR_CI_cox_wtd) %>% # Unweighted and weights HRs and CIs from Cox models
-            dplyr::rename(HR = `exp(coef)`, 
-                          HR_low_CI = `lower .95`, 
+            dplyr::rename(HR = `exp(coef)`,
+                          HR_low_CI = `lower .95`,
                           HR_upp_CI = `upper .95`) %>%
-            mutate(Method = c("HR (95% CI) from unadjusted Cox model", 
+            mutate(Method = c("HR (95% CI) from unadjusted Cox model",
                               "HR (95% CI) from weighted Cox model")) %>%
-  
-            # Median bootstrapped HR and 95% percentile CI 
-            rbind(data.frame("HR" = HR_median, 
-                             "HR_low_CI" = boot_ci_HR$normal[2], 
-                             "HR_upp_CI" = boot_ci_HR$normal[3], 
+
+            # Median bootstrapped HR and 95% percentile CI
+            rbind(data.frame("HR" = HR_median,
+                             "HR_low_CI" = boot_ci_HR$percent[4],
+                             "HR_upp_CI" = boot_ci_HR$percent[5],
                              "Method"="Bootstrap median HR (95% percentile CI)")) %>%
-            
-            # Median bootstrapped HR and 95% bias-corrected and accelerated bootstrap CI  
-            rbind(data.frame("HR" = HR_median, 
-                             "HR_low_CI" = boot_ci_HR_BCA$bca[4], 
-                             "HR_upp_CI" = boot_ci_HR_BCA$bca[5], 
+
+            # Median bootstrapped HR and 95% bias-corrected and accelerated bootstrap CI
+            rbind(data.frame("HR" = HR_median,
+                             "HR_low_CI" = boot_ci_HR_BCA$bca[4],
+                             "HR_upp_CI" = boot_ci_HR_BCA$bca[5],
                              "Method"="Bootstrap median HR (95% BCa CI)")) %>%
-            
+
             # Format HR and CI in one variable, rounded to 3 decimal places
-            dplyr::mutate(HR_95_CI = paste0(sprintf('%.3f', HR), 
-                                            " (", 
-                                            sprintf('%.3f', HR_low_CI), 
-                                            ", ", 
-                                            sprintf('%.3f', HR_upp_CI), 
+            dplyr::mutate(HR_95_CI = paste0(sprintf('%.3f', HR),
+                                            " (",
+                                            sprintf('%.3f', HR_low_CI),
+                                            ", ",
+                                            sprintf('%.3f', HR_upp_CI),
                                             ")")
                           ) %>%
-            dplyr::select(Method, HR_95_CI)   
+            dplyr::transmute(Method, HR_95_CI)
 
 # turns the results to a table suitable for word/ powerpoint
 HR_table <- HR_summ %>%
     regulartable() %>% #make it a flextable object
-  set_header_labels(Method = "Method",  HR_95_CI = "Hazard ratio (95% CI)")  %>% 
+  set_header_labels(Method = "Method",  HR_95_CI = "Hazard ratio (95% CI)")  %>%
     font(font = 'Arial', part = 'all') %>%
   fontsize(size = 14, part = 'all') %>%
   bold(part = 'header') %>%
   align(align = 'center', part = 'all') %>%
-  align(j = 1, align = 'left', part = 'all') %>% 
+  align(j = 1, align = 'left', part = 'all') %>%
   border_outer(border = fp_border()) %>%
   border_inner_h(border = fp_border()) %>%
   border_inner_v(border = fp_border()) %>%
@@ -788,31 +786,31 @@ value.
 ## Calculate ORs
 
 # Fit a logistic regression model without weights to estimate the unweighted OR
-unweighted_OR <- glm(formula = response~ARM, 
-                     family = binomial(link="logit"), 
+unweighted_OR <- glm(formula = response~ARM,
+                     family = binomial(link="logit"),
                      data = est_weights$analysis_data)
 
 # Log odds ratio
-log_OR_CI_logit <- cbind("Log odds ratio" = coef(unweighted_OR), 
+log_OR_CI_logit <- cbind("Log odds ratio" = coef(unweighted_OR),
                          confint.default(unweighted_OR, level = 0.95))[2,]
 
 # Odds ratio
-OR_CI_logit <- exp(cbind("Odds ratio" = coef(unweighted_OR), 
+OR_CI_logit <- exp(cbind("Odds ratio" = coef(unweighted_OR),
                          confint.default(unweighted_OR, level = 0.95)))[2,]
-OR_CI_logit                
-  
+OR_CI_logit
+
 # Fit a logistic regression model with weights to estimate the weighted OR
-weighted_OR <- suppressWarnings(glm(formula = response~ARM, 
-                                    family = binomial(link="logit"), 
-                                    data = est_weights$analysis_data, 
+weighted_OR <- suppressWarnings(glm(formula = response~ARM,
+                                    family = binomial(link="logit"),
+                                    data = est_weights$analysis_data,
                                     weight = wt))
 
 # Weighted log odds ratio
-log_OR_CI_logit_wtd <- cbind("Log odds ratio" = coef(weighted_OR), 
+log_OR_CI_logit_wtd <- cbind("Log odds ratio" = coef(weighted_OR),
                              confint.default(weighted_OR, level = 0.95))[2,]
 
 # Weighted odds ratio
-OR_CI_logit_wtd <- exp(cbind("Odds ratio" = coef(weighted_OR), 
+OR_CI_logit_wtd <- exp(cbind("Odds ratio" = coef(weighted_OR),
                              confint.default(weighted_OR, level = 0.95)))[2,]
 OR_CI_logit_wtd
 
@@ -839,7 +837,7 @@ OR_bootstraps <- boot(data = int, # intervention data
 OR_median <- median(OR_bootstraps$t)
 
 # Bootstrap CI - Percentile CI
-boot_ci_OR <- boot.ci(boot.out = OR_bootstraps, index=1, type="norm") 
+boot_ci_OR <- boot.ci(boot.out = OR_bootstraps, index=1, type="perc")
 
 # Bootstrap CI - BCa CI
 boot_ci_OR_BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type="bca")
@@ -851,41 +849,41 @@ boot_ci_OR_BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type="bca")
 OR_summ <-  rbind(OR_CI_logit, OR_CI_logit_wtd) %>% # Unweighted and weighted ORs and CIs
             as.data.frame() %>%
             dplyr::rename(OR = `Odds ratio`, OR_low_CI = `2.5 %`, OR_upp_CI = `97.5 %`) %>%
-            mutate(Method = c("OR (95% CI) from unadjusted logistic regression model", 
+            mutate(Method = c("OR (95% CI) from unadjusted logistic regression model",
                               "OR (95% CI) from weighted logistic regression model")) %>%
-  
+
             # Median bootstrapped HR and 95% percentile CI
-            rbind(data.frame("OR" = OR_median, 
-                             "OR_low_CI" = boot_ci_OR$normal[2], 
-                             "OR_upp_CI" = boot_ci_OR$normal[3], 
+            rbind(data.frame("OR" = OR_median,
+                             "OR_low_CI" = boot_ci_OR$percent[4],
+                             "OR_upp_CI" = boot_ci_OR$percent[5],
                              "Method"="Bootstrap median HR (95% percentile CI)")) %>%
-  
+
             # Median bootstrapped HR and 95% bias-corrected and accelerated bootstrap CI
-            rbind(data.frame("OR" = OR_median, 
-                             "OR_low_CI" = boot_ci_OR_BCA$bca[4], 
-                             "OR_upp_CI" = boot_ci_OR_BCA$bca[5], 
+            rbind(data.frame("OR" = OR_median,
+                             "OR_low_CI" = boot_ci_OR_BCA$bca[4],
+                             "OR_upp_CI" = boot_ci_OR_BCA$bca[5],
                              "Method"="Bootstrap median HR (95% BCa CI)")) %>%
-  
+
             # Format OR and CI in one variable, rounded to 3 decimal places
-            dplyr::mutate(OR_95_CI = paste0(sprintf('%.3f', OR), 
-                                            " (", 
-                                            sprintf('%.3f', OR_low_CI), 
-                                            ", ", 
-                                            sprintf('%.3f', OR_upp_CI), 
+            dplyr::mutate(OR_95_CI = paste0(sprintf('%.3f', OR),
+                                            " (",
+                                            sprintf('%.3f', OR_low_CI),
+                                            ", ",
+                                            sprintf('%.3f', OR_upp_CI),
                                             ")")
                           ) %>%
-  
-            dplyr::select(Method, OR_95_CI)
+
+            dplyr::transmute(Method, OR_95_CI)
 
 # turns the results to a table suitable for word/ powerpoint
 OR_table <- OR_summ %>%
     regulartable() %>% #make it a flextable object
-  set_header_labels(Method = "Method",  OR_95_CI = "Odds ratio (95% CI)")  %>% 
+  set_header_labels(Method = "Method",  OR_95_CI = "Odds ratio (95% CI)")  %>%
     font(font = 'Arial', part = 'all') %>%
   fontsize(size = 14, part = 'all') %>%
   bold(part = 'header') %>%
   align(align = 'center', part = 'all') %>%
-  align(j = 1, align = 'left', part = 'all') %>% 
+  align(j = 1, align = 'left', part = 'all') %>%
   border_outer(border = fp_border()) %>%
   border_inner_h(border = fp_border()) %>%
   border_inner_v(border = fp_border()) %>%
