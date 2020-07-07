@@ -4,13 +4,10 @@
 \alias{estimate_weights}
 \title{Estimate MAIC propensity weights}
 \usage{
-estimate_weights(intervention_data, comparator_data, matching_vars)
+estimate_weights(intervention_data, matching_vars)
 }
 \arguments{
 \item{intervention_data}{A data frame containing individual patient data from the intervention study.}
-
-\item{comparator_data}{A data frame containing pseudo individual patient data from the comparator study.
-The outcome variables names must match intervention_data.}
 
 \item{matching_vars}{A character vector giving the names of the covariates to use
 in matching. These names must match the column names in intervention_data.}
@@ -20,8 +17,8 @@ as the method for maximum likelihood optimisation. The default is method =
 "BFGS". Refer to \code{\link[stats]{optim}} for options.}
 }
 \value{
-A list containing 2 objects. First, a data frame named analysis_data containing intervention_data and comparator_data
-  with additional columns named wt (weights) and wt_rs (rescaled weights) where the weights are 1 for the comparator data.
+A list containing 2 objects. First, a data frame named analysis_data containing intervention_data
+  with additional columns named wt (weights) and wt_rs (rescaled weights).
   Second, a vector called matching_vars of the matching variables names used.
 }
 \description{

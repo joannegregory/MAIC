@@ -19,23 +19,21 @@ gradfn <- function(a1, X){
 #' Estimate propensity weights for matching-adjusted indirect comparison (MAIC).
 #'
 #' @param intervention_data A data frame containing individual patient data from the intervention study.
-#' @param comparator_data  A data frame containing pseudo individual patient data from the comparator study.
-#'  The outcome variables names must match intervention_data.
 #' @param matching_vars A character vector giving the names of the covariates to use
 #'   in matching. These names must match the column names in intervention_data.
 #' @param ... Additional arguments to be passed to optimisation functions such
 #'   as the method for maximum likelihood optimisation. The default is method =
 #'   "BFGS". Refer to \code{\link[stats]{optim}} for options.
 #'
-#' @return A list containing 2 objects. First, a data frame named analysis_data containing intervention_data and comparator_data
-#'   with additional columns named wt (weights) and wt_rs (rescaled weights) where the weights are 1 for the comparator data.
+#' @return A list containing 2 objects. First, a data frame named analysis_data containing intervention_data
+#'   with additional columns named wt (weights) and wt_rs (rescaled weights).
 #'   Second, a vector called matching_vars of the matching variables names used.
 #' @references NICE DSU TECHNICAL SUPPORT DOCUMENT 18: METHODS FOR
 #'   POPULATION-ADJUSTED INDIRECT COMPARISONS IN SUBMSISSIONS TO NICE, REPORT BY
 #'   THE DECISION SUPPORT UNIT, December 2016
 #' @seealso \code{\link{optim}}
 #' @export
-estimate_weights <- function(intervention_data, comparator_data, matching_vars){
+estimate_weights <- function(intervention_data,  matching_vars){
 
   #Basic checks of inputs before proceeding
   #Check intervention data is a data frame
@@ -43,11 +41,7 @@ estimate_weights <- function(intervention_data, comparator_data, matching_vars){
     is.data.frame(intervention_data),
     msg = "intervention_data is expected to be a data frame"
   )
-  #Check comparator data is a data frame
-  assertthat::assert_that(
-    is.data.frame(comparator_data),
-    msg = "comparator_data is expected to be a data frame"
-  )
+
   #Check that matching_vars is a character vector
   assertthat::assert_that(
     is.character(matching_vars),
@@ -59,10 +53,7 @@ estimate_weights <- function(intervention_data, comparator_data, matching_vars){
     msg = "matching_vars contains variable names that are not in the intervention dataset"
   )
 
-  assertthat::assert_that(
-    all(colnames(comparator_data) %in% colnames(intervention_data)),
-    msg = "Column names in the comparator dataset do not all match columns in the intervention dataset. Check your inputs"
-  )
+
 
   # Optimise Q(b) using Newton-Raphson techniques
   opt1 <- optim(par = rep(0,dim(as.data.frame(intervention_data[,matching_vars]))[2]),
@@ -80,20 +71,13 @@ estimate_weights <- function(intervention_data, comparator_data, matching_vars){
                                  ARM = "Intervention"
   )
 
-  # assign weight=1 to comparator data
-  comparator_data_wts <- comparator_data %>%
-    dplyr::mutate(wt=1, wt_rs=1, ARM="Comparator")
-
-  # Join comparator data with the intervention data
-  all_data <- plyr::rbind.fill(data_with_wts, comparator_data_wts)
-  all_data$ARM <- relevel(as.factor(all_data$ARM), ref="Comparator")
 
   # Outputs are:
-  #       - the analysis data (intervention PLD, weights and comparator pseudo PLD)
+  #       - the analysis data (intervention PLD with weights )
   #       - A character  vector with the name of the matching variables
   output <- list(
     matching_vars = matching_vars,
-    analysis_data = all_data
+    analysis_data = data_with_wts
   )
 
   return(output)

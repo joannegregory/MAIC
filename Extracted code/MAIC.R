@@ -54,29 +54,6 @@ match_cov <- c("AGE",
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
-#### Comparator pseudo data
-
-# Read in digitised pseudo survival data, col names must match intervention_input
-comparator_surv <- read.csv(system.file("extdata", "psuedo_IPD.csv",
-                                        package = "MAIC", mustWork = TRUE)) %>%
-  rename(Time=Time, Event=Event)
-
-
-# Simulate response data based on the known proportion of responders
-comparator_n <- nrow(comparator_surv) # total number of patients in the comparator data
-comparator_prop_events <- 0.4 # proportion of responders
-comparator_binary <- data.frame("response"=
-                                  c(rep(1,comparator_n*comparator_prop_events),
-                                    rep(0, comparator_n*(1-comparator_prop_events))))
-
-# Join survival and response comparator data
-# (note the rows do not represent observations from a particular patient)
-comparator_input <- cbind(comparator_surv, comparator_binary)
-
-
-
-
-## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Baseline aggregate data for the comparator population
 target_pop <- read.csv(system.file("extdata", "Aggregate data.csv",
                                    package = "MAIC", mustWork = TRUE))
@@ -122,7 +99,6 @@ cent_match_cov <- c("Age_centered",
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 est_weights <- estimate_weights(intervention_data=intervention_data,
-                                comparator_data=comparator_input,
                                 matching_vars = cent_match_cov)
 
 head(est_weights$analysis_data)
@@ -133,8 +109,7 @@ est_weights$matching_vars
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
-ESS <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
-  estimate_ess()
+ESS <- estimate_ess(est_weights$analysis_data)
 ESS
 
 
@@ -142,23 +117,19 @@ ESS
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Plot histograms of unscaled and rescaled weights
 # bin_width needs to be adapted depending on the sample size in the data set
-histogram <- est_weights$analysis_data %>%
-              filter(ARM == 'Intervention') %>%
-              hist_wts(bin = 50)
+histogram <- hist_wts(est_weights$analysis_data, bin = 50)
 histogram
 
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
-weight_summ <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
-                summarize_wts()
+weight_summ <- summarize_wts(est_weights$analysis_data)
 weight_summ
 
 
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
-wts_profile <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
-                profile_wts(vars = match_cov)
+wts_profile <- profile_wts(est_weights$analysis_data,vars = match_cov)
 head(wts_profile)
 
 
@@ -166,8 +137,7 @@ head(wts_profile)
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Function to produce a set of diagnostics.
 # Calls each of the diagnostic functions above except for plotting histograms
-diagnostics <- filter(est_weights$analysis_data, ARM == 'Intervention') %>%
-                wt_diagnostics(vars = est_weights$matching_vars)
+diagnostics <- wt_diagnostics(est_weights$analysis_data, vars = est_weights$matching_vars)
 
 diagnostics$ESS
 
@@ -179,17 +149,15 @@ head(diagnostics$Weight_profiles)
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Create an object to hold the output
-baseline_summary <- list('Intervention_weighted' = NA, 'Intervention' = NA, 'Comparator' = NA)
+baseline_summary <- list('Intervention' = NA, 'Intervention_weighted' = NA, 'Comparator' = NA)
 
 # Summarise matching variables for weighted intervention data
 baseline_summary$Intervention_weighted <- est_weights$analysis_data %>%
-  filter(ARM=="Intervention") %>%
   dplyr::transmute(AGE, SEX, SMOKE, ECOG0, wt) %>%
   dplyr::summarise_at(match_cov, list(~ weighted.mean(., wt)))
 
 # Summarise matching variables for unweighted intervention data
 baseline_summary$Intervention <- est_weights$analysis_data %>%
-  filter(ARM=="Intervention") %>%
   dplyr::transmute(AGE, SEX, SMOKE, ECOG0, wt) %>%
   dplyr::summarise_at(match_cov, list(~ mean(.)))
 
@@ -203,45 +171,66 @@ baseline_summary <- dplyr::bind_rows(baseline_summary) %>%
   transmute_all(sprintf, fmt = "%.2f") %>% #apply rounding for presentation
   transmute(ARM = as.character(trt), AGE, SEX, SMOKE, ECOG0)
 
-# Count the number of patients in the unweighted data
-summary_n <- est_weights$analysis_data %>%
-  dplyr::group_by(ARM) %>%
-  dplyr::summarise('N' = n()) %>%
-  dplyr::mutate(ARM = as.character(ARM))
+# Insert N of intervention  as number of patients
+baseline_summary$`N/ESS`[baseline_summary$ARM == "Intervention"] <- nrow(est_weights$analysis_data)
 
-# Combine sample sizes with summary data
-baseline_summary <- full_join(baseline_summary, summary_n) %>%
-  transmute(ARM, `N/ESS` = N, AGE, SEX, SMOKE, ECOG0)
+# Insert N for comparator from target_pop_standard
+baseline_summary$`N/ESS`[baseline_summary$ARM == "Comparator"] <- target_pop_standard$N
 
 # Insert the ESS as the sample size for the weighted data
 # This is calculated above but can also be obtained using the estimate_ess function as shown below
 baseline_summary$`N/ESS`[baseline_summary$ARM == "Intervention_weighted"] <- est_weights$analysis_data %>%
-  filter(ARM == 'Intervention') %>%
   estimate_ess(wt_col = 'wt')
 
-baseline_summary
+baseline_summary <- baseline_summary %>%
+  transmute(ARM, `N/ESS`=round(`N/ESS`,1), AGE, SEX, SMOKE, ECOG0)
+
+#### Comparator pseudo data
+
+# Read in digitised pseudo survival data, col names must match intervention_input
+comparator_surv <- read.csv(system.file("extdata", "psuedo_IPD.csv",
+                                        package = "MAIC", mustWork = TRUE)) %>%
+  rename(Time=Time, Event=Event)
+
+
+# Simulate response data based on the known proportion of responders
+comparator_n <- nrow(comparator_surv) # total number of patients in the comparator data
+comparator_prop_events <- 0.4 # proportion of responders
+comparator_binary <- data.frame("response"=
+                                  c(rep(1,comparator_n*comparator_prop_events),
+                                    rep(0, comparator_n*(1-comparator_prop_events))))
+
+# Join survival and response comparator data
+# (note the rows do not represent observations from a particular patient)
+comparator_input <- cbind(comparator_surv, comparator_binary) %>%
+                    mutate(wt=1, wt_rs=1, ARM="Comparator")
+head(comparator_input)
+
+
+# Join comparator data with the intervention data
+combined_data <- dplyr::bind_rows(est_weights$analysis_data, comparator_input)
+combined_data$ARM <- relevel(as.factor(combined_data$ARM), ref="Comparator")
+
 
 
 
 ## ---- warning=FALSE-------------------------------------------------------------------------------------------------------------------------------------------
-# Separate data into intervention data and comparator data
-# The boostrap_HR function below makes use of the estimate_weights function
-# which requires separate datasets
-int <- filter(est_weights$analysis_data, ARM == 'Intervention')
-comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
+
+# int <- est_weights$analysis_data
+# comp <- comparator_input
 
 # Unweighted intervention data
 KM_int <- survfit(formula = Surv(Time, Event==1) ~ 1 ,
-                  data = int,
+                  data = est_weights$analysis_data,
                   type="kaplan-meier")
 # Weighted intervention data
 KM_int_wtd <- survfit(formula = Surv(Time, Event==1) ~ 1 ,
-                  data = int,
+                  data = est_weights$analysis_data,
                   weights = wt,
                   type="kaplan-meier")
 # Comparator data
 KM_comp <- survfit(formula = Surv(Time, Event==1) ~ 1 ,
-                  data = comp,
+                  data = comparator_input,
                   type="kaplan-meier")
 
 # Combine the survfit objects ready for ggsurvplot
@@ -270,7 +259,7 @@ KM_plot
 ## Calculate HRs
 
 # Fit a Cox model without weights to estimate the unweighted HR
-unweighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_data)
+unweighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = combined_data)
 
 HR_CI_cox <- summary(unweighted_cox)$conf.int %>%
               as.data.frame() %>%
@@ -278,7 +267,7 @@ HR_CI_cox <- summary(unweighted_cox)$conf.int %>%
 HR_CI_cox
 
 # Fit a Cox model with weights to estimate the weighted HR
-weighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = est_weights$analysis_data, weights = wt)
+weighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = combined_data, weights = wt)
 
 HR_CI_cox_wtd <- summary(weighted_cox)$conf.int %>%
                   as.data.frame() %>%
@@ -288,10 +277,10 @@ HR_CI_cox_wtd
 ## Bootstrapping
 
 # Bootstrap 1000 HRs
-HR_bootstraps <- boot(data = int, # intervention data
+HR_bootstraps <- boot(data = est_weights$analysis_data, # intervention data
                       statistic = bootstrap_HR, # bootstrap the HR (defined in the MAIC package)
                       R=1000, # number of bootstrap samples
-                      comparator_data = comp, # comparator pseudo data
+                      comparator_data = comparator_input, # comparator pseudo data
                       matching = est_weights$matching_vars, # matching variables
                       model = Surv(Time, Event==1) ~ ARM # model to fit
                       )
@@ -371,7 +360,7 @@ abline(v= quantile(HR_bootstraps$t, probs = c(0.025, 0.5, 0.975)), lty=2)
 # Fit a logistic regression model without weights to estimate the unweighted OR
 unweighted_OR <- glm(formula = response~ARM,
                      family = binomial(link="logit"),
-                     data = est_weights$analysis_data)
+                     data = combined_data)
 
 # Log odds ratio
 log_OR_CI_logit <- cbind("Log odds ratio" = coef(unweighted_OR),
@@ -385,7 +374,7 @@ OR_CI_logit
 # Fit a logistic regression model with weights to estimate the weighted OR
 weighted_OR <- suppressWarnings(glm(formula = response~ARM,
                                     family = binomial(link="logit"),
-                                    data = est_weights$analysis_data,
+                                    data = combined_data,
                                     weight = wt))
 
 # Weighted log odds ratio
@@ -400,17 +389,12 @@ OR_CI_logit_wtd
 
 ## Bootstrapping
 
-# Separate data into intervention data and comparator data
-# The boostrap_OR function below makes use of the estimate_weights fucntion
-# which requires separate datasets
-int <- filter(est_weights$analysis_data, ARM == 'Intervention')
-comp <- filter(est_weights$analysis_data, ARM == 'Comparator')
 
 # Bootstrap 1000 ORs
-OR_bootstraps <- boot(data = int, # intervention data
+OR_bootstraps <- boot(data = est_weights$analysis_data, # intervention data
                       statistic = bootstrap_OR, # bootstrap the OR
                       R = 1000, # number of bootstrap samples
-                      comparator_data = comp, # comparator pseudo data
+                      comparator_data = comparator_input, # comparator pseudo data
                       matching = est_weights$matching_vars, # matching variables
                       model = 'response ~ ARM' # model to fit
                       )
