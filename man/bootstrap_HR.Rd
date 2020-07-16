@@ -7,7 +7,8 @@
 bootstrap_HR(intervention_data, matching, i, model, comparator_data)
 }
 \arguments{
-\item{intervention_data}{A data frame containing individual patient data from the intervention study.}
+\item{intervention_data}{A data frame containing individual patient data
+from the intervention study.}
 
 \item{matching}{A character vector giving the names of the covariates to use
 in matching. These names must match the column names in intervention_data.}
@@ -15,22 +16,20 @@ in matching. These names must match the column names in intervention_data.}
 \item{i}{Index used to select a sample within \code{\link{boot}}.}
 
 \item{model}{A model formula in the form 'Surv(Time, Event==1) ~ ARM'.
-<<<<<<< HEAD
-Variable names need to match the corresponding columns in intervention_data.}
+Variable names need to match the corresponding columns in
+intervention_data.}
 
-\item{comparator_data}{A data frame containing pseudo individual patient data from the comparator study needed to derive the relative treatment effect.
-=======
- Variable names need to match the corresponding columns in intervention_data.
- #' @param comparator_data A data frame containing pseudo individual patient data from the comparator study needed to derive the relative treatment effect.
->>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
+\item{comparator_data}{A data frame containing pseudo individual patient data
+from the comparator study needed to derive the relative treatment effect.
 The outcome variables names must match intervention_data.}
 }
 \value{
 The HR as a numeric value.
 }
 \description{
-A function required for the "statistic" argument in the \code{\link{boot}} function.
-Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted hazard ratio (HR) from a Cox proportional hazards model.
+A function required for the "statistic" argument in the \code{\link{boot}}
+function. Performs MAIC weighting using {\link{estimate_weights}} and returns
+a weighted hazard ratio (HR) from a Cox proportional hazards model.
 }
 \examples{
 

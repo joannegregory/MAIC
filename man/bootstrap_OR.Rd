@@ -7,30 +7,28 @@
 bootstrap_OR(intervention_data, matching, i, model, comparator_data)
 }
 \arguments{
-\item{intervention_data}{A data frame containing individual patient data from the intervention study.}
+\item{intervention_data}{A data frame containing individual patient data
+from the intervention study.}
 
 \item{matching}{A character vector giving the names of the covariates to use
 in matching. These names must match the column names in intervention_data.}
 
 \item{i}{Index used to select a sample within \code{\link{boot}}.}
 
-\item{model}{A model formula in the form 'endpoint ~ treatment_var'.
-Variable names need to match the corresponding columns in intervention_data.}
+\item{model}{A model formula in the form 'endpoint ~ treatment_var'. Variable
+names need to match the corresponding columns in intervention_data.}
 
-\item{comparator_data}{A data frame containing pseudo individual patient data from the comparator study needed to derive the relative treatment effect.
-<<<<<<< HEAD
+\item{comparator_data}{A data frame containing pseudo individual patient data
+from the comparator study needed to derive the relative treatment effect.
 The outcome variables names must match intervention_data.}
 }
 \value{
 The OR as a numeric value.
-=======
-The outcome variables names must match intervention_data.
-#' @return The OR as a numeric value.}
->>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
 }
 \description{
-A function required for the "statistic" argument in the \code{\link{boot}} function.
-Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted odds ratio (OR) from a binomial generalised linear model.
+A function required for the "statistic" argument in the \code{\link{boot}}
+function. Performs MAIC weighting using {\link{estimate_weights}} and returns
+a weighted odds ratio (OR) from a binomial generalised linear model.
 }
 \examples{
 
