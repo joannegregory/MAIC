@@ -18,10 +18,15 @@ in matching. These names must match the column names in intervention_data.}
 Variable names need to match the corresponding columns in intervention_data.}
 
 \item{comparator_data}{A data frame containing pseudo individual patient data from the comparator study needed to derive the relative treatment effect.
+<<<<<<< HEAD
 The outcome variables names must match intervention_data.}
 }
 \value{
 The OR as a numeric value.
+=======
+The outcome variables names must match intervention_data.
+#' @return The OR as a numeric value.}
+>>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
 }
 \description{
 A function required for the "statistic" argument in the \code{\link{boot}} function.

@@ -115,11 +115,18 @@ example have been simulated to resemble that of clinical trial data. The data
 available are:
 
 * Individual patient data from a single arm study of 'intervention'
+<<<<<<< HEAD
 * Aggregate summary data for 'comparator'. This could be from a single arm study
 of the comparator or from one arm of a randomized controlled trial.
 * Psuedo patient data from the comparator study. This is not required for the
 matching process but is needed to derive the relative treatment effects between
 the intervention and comparator.
+=======
+* Aggregate summary data for 'comparator'. This could be from a single arm study of
+the comparator or from one arm of a randomized controlled trial.
+* Psuedo patient data from the comparator study. This is not required for the matching process 
+but is needed to derive the relative treatment effects between the intervention and comparator.
+>>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
 
 In this example scenario, age, sex, the Eastern Cooperative Oncology Group
 performance status (ECOG PS) and smoking status have been identified as
@@ -318,10 +325,18 @@ to minimize $Q(\beta) = \sum_{i=1}^n \exp{(x_{i,ild}.\beta)}$ and outputs a list
 containing:
 
 * A character vector containing the names of the matching variables
+<<<<<<< HEAD
 * An analysis data frame of the intervention data with weights 
 
 ```{r}
 est_weights <- estimate_weights(intervention_data = intervention_data,
+=======
+* An analysis data frame of the intervention data with
+weights 
+
+```{r}
+est_weights <- estimate_weights(intervention_data=intervention_data,
+>>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
                                 matching_vars = cent_match_cov)
 
 head(est_weights$analysis_data)
@@ -415,7 +430,11 @@ from this function is less useful. When there is a small set of unique weights
 influence on the weighted analyses. 
 
 ```{r}
+<<<<<<< HEAD
 wts_profile <- profile_wts(est_weights$analysis_data, vars = match_cov)
+=======
+wts_profile <- profile_wts(est_weights$analysis_data,vars = match_cov)
+>>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
 head(wts_profile)
 
 ```
@@ -450,6 +469,7 @@ comparator trial and outputs a summary that can be used for reporting.
 
 ```{r}
 # Create an object to hold the output
+<<<<<<< HEAD
 baseline_summary <- list('Intervention' = NA, 
                          'Intervention_weighted' = NA, 
                          'Comparator' = NA)
@@ -463,6 +483,19 @@ baseline_summary$Intervention_weighted <- est_weights$analysis_data %>%
 baseline_summary$Intervention <- est_weights$analysis_data %>%
    transmute(AGE, SEX, SMOKE, ECOG0, wt) %>%
    summarise_at(match_cov, list(~ mean(.)))
+=======
+baseline_summary <- list('Intervention' = NA, 'Intervention_weighted' = NA, 'Comparator' = NA)
+
+# Summarise matching variables for weighted intervention data
+baseline_summary$Intervention_weighted <- est_weights$analysis_data %>%
+  dplyr::transmute(AGE, SEX, SMOKE, ECOG0, wt) %>%
+  dplyr::summarise_at(match_cov, list(~ weighted.mean(., wt)))
+
+# Summarise matching variables for unweighted intervention data
+baseline_summary$Intervention <- est_weights$analysis_data %>%
+  dplyr::transmute(AGE, SEX, SMOKE, ECOG0, wt) %>%
+  dplyr::summarise_at(match_cov, list(~ mean(.)))
+>>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
 
 # baseline data for the comparator study
 baseline_summary$Comparator <- transmute(target_pop_standard, AGE, SEX, SMOKE, ECOG0)
@@ -500,12 +533,21 @@ pseudo individual patient data is required for these analyses to derive the
 relative treatment effects. These patients are given a weight of 1 for use in 
 the weighted analysis.
 
+<<<<<<< HEAD
 Pseudo overall survival data was obtained for the comparator treatment by
 digitizing a reported overall survival Kaplan-Meier graph using the methodology
 of Guyot et al.[@guyot2012] It is common for binary endpoints to be reported as
 a percentage of responders with the event and therefore the example code below
 simulates pseudo-data for objective response based on the total number of
 patients and the proportion of responders.
+=======
+Pseudo overall survival data was obtained for the comparator treatment by digitizing a reported
+overall survival Kaplan-Meier graph using the methodology of Guyot et
+al.[@guyot2012] It is common for binary endpoints to be reported as a percentage
+of responders with the event and therefore the example code below simulates
+pseudo-data for objective response based on the total number of patients and the
+proportion of responders.
+>>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
 
 The comparator data will include pseudo individual patient data from two
 different endpoints and it should be highlighted that there is no 1:1
@@ -539,7 +581,11 @@ head(comparator_input)
 
 
 # Join comparator data with the intervention data
+<<<<<<< HEAD
 combined_data <-  bind_rows(est_weights$analysis_data, comparator_input)
+=======
+combined_data <- dplyr::bind_rows(est_weights$analysis_data, comparator_input)
+>>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
 combined_data$ARM <- relevel(as.factor(combined_data$ARM), ref="Comparator")
 
 ```
@@ -662,6 +708,7 @@ KM_plot
 In this example, the weighted HR 0.29 (95% CI: 0.21, 0.40) shows a larger
 treatment effect (HR further from 1) than the unweighted HR 0.38 (95% CI: 0.30,
 0.46). The median of the bootstrap HR samples is the same as the HR from the
+<<<<<<< HEAD
 weighted Cox model to two decimal places (HR is 0.29). In this example, the
 percentile CI (0.22, 0.37) and BCa confidence interval (0.22, 0.37) are
 identical to two decimal places suggesting the bootstrap samples are relatively
@@ -669,6 +716,14 @@ normally distributed (see [diagnostics](#bshr)). Finally, it should be noted
 that results are relatively consistent across all methods, the intervention
 treatment significantly reduces the hazard of death compared with the comparator
 treatment.
+=======
+weighted Cox model to two decimal places (HR is 0.29). In this example, the percentile CI (0.22, 0.37)
+and BCa confidence interval (0.22, 0.37) are identical to two decimal places suggesting the bootstrap
+samples are relatively normally distributed (see [diagnostics](#bshr)). Finally,
+it should be noted that results are relatively consistent across all methods,
+the intervention treatment significantly reduces the hazard of death compared
+with the comparator treatment.
+>>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
 ```{r}
 ## Calculate HRs
 
