@@ -51,6 +51,7 @@ knitr::opts_chunk$set(
   fig.width = 7,
   fig.height = 6
 )
+
 ```
 
 # Introduction
@@ -97,8 +98,10 @@ variables/treatment effect modifiers to be used in the MAIC analyses, some of
 which include:
 
 * Clinical expertise (when available to a project)
-* Published papers/previous submissions (what has been identified in the disease area previously)
-* Univariable/multivariable regression analyses to identify which covariates have a significant effect on the outcome
+* Published papers/previous submissions (what has been identified in the disease
+area previously)
+* Univariable/multivariable regression analyses to identify which covariates
+have a significant effect on the outcome
 * Subgroup analyses of clinical trials may identify interactions between patient
 characteristics and the relative treatment effect
 
@@ -112,10 +115,11 @@ example have been simulated to resemble that of clinical trial data. The data
 available are:
 
 * Individual patient data from a single arm study of 'intervention'
-* Aggregate summary data for 'comparator'. This could be from a single arm study of
-the comparator or from one arm of a randomized controlled trial.
-* Psuedo patient data from the comparator study. This is not required for the matching process 
-but is needed to derive the relative treatment effects between the intervention and comparator.
+* Aggregate summary data for 'comparator'. This could be from a single arm study
+of the comparator or from one arm of a randomized controlled trial.
+* Psuedo patient data from the comparator study. This is not required for the
+matching process but is needed to derive the relative treatment effects between
+the intervention and comparator.
 
 In this example scenario, age, sex, the Eastern Cooperative Oncology Group
 performance status (ECOG PS) and smoking status have been identified as
@@ -154,9 +158,10 @@ To perform unanchored MAICs, the following data is required:
 Simulated data for the above is provided with the <tt>MAIC</tt> package.
 
 ### Intervention trial IPD
-This example reads in and combines data from three standard simulated data
-sets (adsl, adrs and adtte) which are saved as '.csv' files. The data may need some
-manipulation to standardize the variable names to ensure they are the same in all datasets.
+This example reads in and combines data from three standard simulated data sets
+(adsl, adrs and adtte) which are saved as '.csv' files. The data may need some
+manipulation to standardize the variable names to ensure they are the same in
+all datasets.
 
 The variables needed for the time to event analyses are:
 
@@ -171,8 +176,10 @@ The variables needed for the binary event analyses are:
 
 For the matching variables:
 
-* All binary variables to be used in the matching should be coded 1 and 0 (see example for sex below).
-* The variable names need to be listed in a character vector called <tt>match_cov</tt>.
+* All binary variables to be used in the matching should be coded 1 and 0 (see
+example for sex below).
+* The variable names need to be listed in a character vector called
+<tt>match_cov</tt>.
 
 ```{r}
 #### Intervention data
@@ -185,16 +192,16 @@ adtte <- read.csv(system.file("extdata", "adtte.csv", package = "MAIC", mustWork
 
 
 adsl <- adsl %>% # Data containing the matching variables
-  dplyr::mutate(SEX=ifelse(SEX=="Male", 1, 0)) # Coded 1 for males and 0 for females
+   mutate(SEX=ifelse(SEX=="Male", 1, 0)) # Coded 1 for males and 0 for females
 
 adrs <- adrs %>% # Response data
-  dplyr::filter(PARAM=="Response") %>%
-  dplyr::transmute(USUBJID, ARM, response=AVAL)
+   filter(PARAM=="Response") %>%
+   transmute(USUBJID, ARM, response=AVAL)
 
 adtte <- adtte %>% # Time to event data (overall survival)
-  dplyr::filter(PARAMCD=="OS") %>%
-  dplyr::mutate(Event=1-CNSR) %>%
-  dplyr::transmute(USUBJID, ARM, Time=AVAL, Event)
+   filter(PARAMCD=="OS") %>%
+   mutate(Event=1-CNSR) %>%
+   transmute(USUBJID, ARM, Time=AVAL, Event)
 
 # Combine all intervention data
 intervention_input <- full_join(full_join(adsl,adrs, by=c("USUBJID", "ARM")), adtte,
@@ -228,14 +235,14 @@ match_cov
 names(target_pop)
 target_pop_standard <- target_pop %>%
   #EDIT
-  dplyr::rename(N=N,
+   rename(N=N,
                 Treatment=ARM,
                 AGE=age.mean,
                 SEX=prop.male,
                 SMOKE=prop.smoke,
                 ECOG0=prop.ecog0
   ) %>%
-  dplyr::transmute(N, Treatment, AGE, SEX, SMOKE, ECOG0)
+   transmute(N, Treatment, AGE, SEX, SMOKE, ECOG0)
 target_pop_standard
 
 ```
@@ -273,17 +280,17 @@ As described by Phillippo, balancing on both mean and standard deviation for
 continuous variables (where possible) may be considered in some cases. This is
 included in the example below.[@phillippo2016a]
 
-The code below also specifies an object (<tt>cent_match_cov</tt>) that contains the
-names of the centered matching variables - this will be needed for the analyses
-below.
+The code below also specifies an object (<tt>cent_match_cov</tt>) that contains
+the names of the centered matching variables - this will be needed for the
+analyses below.
 
 ```{r}
 #### center baseline characteristics
 # (subtract the aggregate comparator data from the corresponding column of intervention PLD)
 names(intervention_input)
 intervention_data <- intervention_input %>%
-        dplyr::mutate(Age_centered = AGE - target_pop$age.mean,
-                      # matching on both mean and standard deviation for continuous variables:
+         mutate(Age_centered = AGE - target_pop$age.mean,
+                      # matching on both mean and standard deviation for continuous variable:
                       Age_squared_centered = (AGE^2) - (target_pop$age.mean^2 + target_pop$age.sd^2),
                       Sex_centered = SEX - target_pop$prop.male,
                       Smoke_centered = SMOKE - target_pop$prop.smoke,
@@ -305,16 +312,16 @@ cent_match_cov <- c("Age_centered",
 ## Optimization procedure
 
 Following the centering of the baseline characteristics of the intervention
-study, patient weights can be estimated using the <tt>estimate_weights</tt> function in
-the <tt>MAIC</tt> package. This performs an optimization procedure to minimize $Q(\beta)
-= \sum_{i=1}^n \exp{(x_{i,ild}.\beta)}$ and outputs a list containing:
+study, patient weights can be estimated using the <tt>estimate_weights</tt>
+function in the <tt>MAIC</tt> package. This performs an optimization procedure
+to minimize $Q(\beta) = \sum_{i=1}^n \exp{(x_{i,ild}.\beta)}$ and outputs a list
+containing:
 
 * A character vector containing the names of the matching variables
-* An analysis data frame of the intervention data with
-weights 
+* An analysis data frame of the intervention data with weights 
 
 ```{r}
-est_weights <- estimate_weights(intervention_data=intervention_data,
+est_weights <- estimate_weights(intervention_data = intervention_data,
                                 matching_vars = cent_match_cov)
 
 head(est_weights$analysis_data)
@@ -408,7 +415,7 @@ from this function is less useful. When there is a small set of unique weights
 influence on the weighted analyses. 
 
 ```{r}
-wts_profile <- profile_wts(est_weights$analysis_data,vars = match_cov)
+wts_profile <- profile_wts(est_weights$analysis_data, vars = match_cov)
 head(wts_profile)
 
 ```
@@ -443,17 +450,19 @@ comparator trial and outputs a summary that can be used for reporting.
 
 ```{r}
 # Create an object to hold the output
-baseline_summary <- list('Intervention' = NA, 'Intervention_weighted' = NA, 'Comparator' = NA)
+baseline_summary <- list('Intervention' = NA, 
+                         'Intervention_weighted' = NA, 
+                         'Comparator' = NA)
 
 # Summarise matching variables for weighted intervention data
 baseline_summary$Intervention_weighted <- est_weights$analysis_data %>%
-  dplyr::transmute(AGE, SEX, SMOKE, ECOG0, wt) %>%
-  dplyr::summarise_at(match_cov, list(~ weighted.mean(., wt)))
+   transmute(AGE, SEX, SMOKE, ECOG0, wt) %>%
+   summarise_at(match_cov, list(~ weighted.mean(., wt)))
 
 # Summarise matching variables for unweighted intervention data
 baseline_summary$Intervention <- est_weights$analysis_data %>%
-  dplyr::transmute(AGE, SEX, SMOKE, ECOG0, wt) %>%
-  dplyr::summarise_at(match_cov, list(~ mean(.)))
+   transmute(AGE, SEX, SMOKE, ECOG0, wt) %>%
+   summarise_at(match_cov, list(~ mean(.)))
 
 # baseline data for the comparator study
 baseline_summary$Comparator <- transmute(target_pop_standard, AGE, SEX, SMOKE, ECOG0)
@@ -461,7 +470,7 @@ baseline_summary$Comparator <- transmute(target_pop_standard, AGE, SEX, SMOKE, E
 # Combine the three summaries
 # Takes a list of data frames and binds these together
 trt <- names(baseline_summary)
-baseline_summary <- dplyr::bind_rows(baseline_summary) %>%
+baseline_summary <-  bind_rows(baseline_summary) %>%
   transmute_all(sprintf, fmt = "%.2f") %>% #apply rounding for presentation
   transmute(ARM = as.character(trt), AGE, SEX, SMOKE, ECOG0)
 
@@ -491,12 +500,12 @@ pseudo individual patient data is required for these analyses to derive the
 relative treatment effects. These patients are given a weight of 1 for use in 
 the weighted analysis.
 
-Pseudo overall survival data was obtained for the comparator treatment by digitizing a reported
-overall survival Kaplan-Meier graph using the methodology of Guyot et
-al.[@guyot2012] It is common for binary endpoints to be reported as a percentage
-of responders with the event and therefore the example code below simulates
-pseudo-data for objective response based on the total number of patients and the
-proportion of responders.
+Pseudo overall survival data was obtained for the comparator treatment by
+digitizing a reported overall survival Kaplan-Meier graph using the methodology
+of Guyot et al.[@guyot2012] It is common for binary endpoints to be reported as
+a percentage of responders with the event and therefore the example code below
+simulates pseudo-data for objective response based on the total number of
+patients and the proportion of responders.
 
 The comparator data will include pseudo individual patient data from two
 different endpoints and it should be highlighted that there is no 1:1
@@ -530,7 +539,7 @@ head(comparator_input)
 
 
 # Join comparator data with the intervention data
-combined_data <- dplyr::bind_rows(est_weights$analysis_data, comparator_input)
+combined_data <-  bind_rows(est_weights$analysis_data, comparator_input)
 combined_data$ARM <- relevel(as.factor(combined_data$ARM), ref="Comparator")
 
 ```
@@ -568,10 +577,9 @@ the estimation of the weights.
 
 Bootstrapping involves:
 
-1. Sampling, with replacement, from the patients in the
-intervention arm (a bootstrap sample) 
-2. Estimating a set of weights for each of
-these bootstrapped data sets and 
+1. Sampling, with replacement, from the patients in the intervention arm (a
+bootstrap sample)
+2. Estimating a set of weights for each of these bootstrapped data sets and 
 3. Estimating a hazard ratio (HR)/odds ratio (OR) using each set of estimated
 weights. 
 
@@ -586,10 +594,17 @@ Two different methods for estimating a 95% confidence
 interval (CI) from the bootstrap samples were explored:[@efron1994; @diciccio1996; @efron1987]
 
 * Percentile CIs 
-    * This method takes the 2.5th and 97.5th percentiles and can be implemented using the <tt>type="perc"</tt> statement in the <tt>boot.ci</tt> function
+    * This method takes the 2.5th and 97.5th percentiles and can be implemented
+    using the <tt>type="perc"</tt> statement in the <tt>boot.ci</tt> function
 * Bias-corrected and accelerated (BCa) CIs 
-    * This method attempts to correct for any bias and skewness in the distribution of bootstrap estimates and can be implemented using <tt>type="bca"</tt> statement in the <tt>boot.ci</tt> function)
-    * The BCa method also takes percentiles but they are not necessarily the 2.5th and 97.5th percentiles (the choice of percentiles depends on an acceleration parameter [estimated through jackknife re-sampling] and a bias correction factor [proportion of bootstrap estimates less than the original estimator])
+    * This method attempts to correct for any bias and skewness in the
+    distribution of bootstrap estimates and can be implemented using
+    <tt>type="bca"</tt> statement in the <tt>boot.ci</tt> function)
+    * The BCa method also takes percentiles but they are not necessarily the
+    2.5th and 97.5th percentiles (the choice of percentiles depends on an
+    acceleration parameter [estimated through jackknife re-sampling] and a bias
+    correction factor [proportion of bootstrap estimates less than the original
+    estimator])
 
 ## Example for survival data
 ### Kaplan-Meier plot
@@ -647,12 +662,13 @@ KM_plot
 In this example, the weighted HR 0.29 (95% CI: 0.21, 0.40) shows a larger
 treatment effect (HR further from 1) than the unweighted HR 0.38 (95% CI: 0.30,
 0.46). The median of the bootstrap HR samples is the same as the HR from the
-weighted Cox model to two decimal places (HR is 0.29). In this example, the percentile CI (0.22, 0.37)
-and BCa confidence interval (0.22, 0.37) are identical to two decimal places suggesting the bootstrap
-samples are relatively normally distributed (see [diagnostics](#bshr)). Finally,
-it should be noted that results are relatively consistent across all methods,
-the intervention treatment significantly reduces the hazard of death compared
-with the comparator treatment.
+weighted Cox model to two decimal places (HR is 0.29). In this example, the
+percentile CI (0.22, 0.37) and BCa confidence interval (0.22, 0.37) are
+identical to two decimal places suggesting the bootstrap samples are relatively
+normally distributed (see [diagnostics](#bshr)). Finally, it should be noted
+that results are relatively consistent across all methods, the intervention
+treatment significantly reduces the hazard of death compared with the comparator
+treatment.
 ```{r}
 ## Calculate HRs
 
@@ -661,7 +677,7 @@ unweighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = combined_data)
 
 HR_CI_cox <- summary(unweighted_cox)$conf.int %>%
               as.data.frame() %>%
-              dplyr::transmute(`exp(coef)`,`lower .95`,`upper .95`)
+               transmute(`exp(coef)`,`lower .95`,`upper .95`)
 HR_CI_cox
 
 # Fit a Cox model with weights to estimate the weighted HR
@@ -669,7 +685,7 @@ weighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = combined_data, weights 
 
 HR_CI_cox_wtd <- summary(weighted_cox)$conf.int %>%
                   as.data.frame() %>%
-                  dplyr::transmute(`exp(coef)`,`lower .95`,`upper .95`)
+                   transmute(`exp(coef)`,`lower .95`,`upper .95`)
 HR_CI_cox_wtd
 
 ## Bootstrapping
@@ -696,7 +712,7 @@ boot_ci_HR_BCA <- boot.ci(boot.out = HR_bootstraps, index=1, type="bca")
 
 # Produce a summary of HRs and CIs
 HR_summ <-  rbind(HR_CI_cox, HR_CI_cox_wtd) %>% # Unweighted and weights HRs and CIs from Cox models
-            dplyr::rename(HR = `exp(coef)`,
+             rename(HR = `exp(coef)`,
                           HR_low_CI = `lower .95`,
                           HR_upp_CI = `upper .95`) %>%
             mutate(Method = c("HR (95% CI) from unadjusted Cox model",
@@ -715,14 +731,14 @@ HR_summ <-  rbind(HR_CI_cox, HR_CI_cox_wtd) %>% # Unweighted and weights HRs and
                              "Method"="Bootstrap median HR (95% BCa CI)")) %>%
 
             # Format HR and CI in one variable, rounded to 3 decimal places
-            dplyr::mutate(HR_95_CI = paste0(sprintf('%.3f', HR),
+             mutate(HR_95_CI = paste0(sprintf('%.3f', HR),
                                             " (",
                                             sprintf('%.3f', HR_low_CI),
                                             ", ",
                                             sprintf('%.3f', HR_upp_CI),
                                             ")")
                           ) %>%
-            dplyr::transmute(Method, HR_95_CI)
+             transmute(Method, HR_95_CI)
 
 # turns the results to a table suitable for word/ powerpoint
 HR_table <- HR_summ %>%
@@ -839,7 +855,7 @@ boot_ci_OR_BCA <- boot.ci(boot.out = OR_bootstraps, index=1, type="bca")
 # Produce summary of ORs and CIs
 OR_summ <-  rbind(OR_CI_logit, OR_CI_logit_wtd) %>% # Unweighted and weighted ORs and CIs
             as.data.frame() %>%
-            dplyr::rename(OR = `Odds ratio`, OR_low_CI = `2.5 %`, OR_upp_CI = `97.5 %`) %>%
+             rename(OR = `Odds ratio`, OR_low_CI = `2.5 %`, OR_upp_CI = `97.5 %`) %>%
             mutate(Method = c("OR (95% CI) from unadjusted logistic regression model",
                               "OR (95% CI) from weighted logistic regression model")) %>%
 
@@ -856,7 +872,7 @@ OR_summ <-  rbind(OR_CI_logit, OR_CI_logit_wtd) %>% # Unweighted and weighted OR
                              "Method"="Bootstrap median HR (95% BCa CI)")) %>%
 
             # Format OR and CI in one variable, rounded to 3 decimal places
-            dplyr::mutate(OR_95_CI = paste0(sprintf('%.3f', OR),
+             mutate(OR_95_CI = paste0(sprintf('%.3f', OR),
                                             " (",
                                             sprintf('%.3f', OR_low_CI),
                                             ", ",
@@ -864,7 +880,7 @@ OR_summ <-  rbind(OR_CI_logit, OR_CI_logit_wtd) %>% # Unweighted and weighted OR
                                             ")")
                           ) %>%
 
-            dplyr::transmute(Method, OR_95_CI)
+             transmute(Method, OR_95_CI)
 
 # turns the results to a table suitable for word/ powerpoint
 OR_table <- OR_summ %>%

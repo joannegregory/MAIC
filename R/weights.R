@@ -32,6 +32,9 @@ gradfn <- function(a1, X){
 #'   POPULATION-ADJUSTED INDIRECT COMPARISONS IN SUBMSISSIONS TO NICE, REPORT BY
 #'   THE DECISION SUPPORT UNIT, December 2016
 #' @seealso \code{\link{optim}}
+#'
+#' @example inst/examples/MAICexample.R
+#'
 #' @export
 estimate_weights <- function(intervention_data,  matching_vars){
 
@@ -104,6 +107,9 @@ estimate_weights <- function(intervention_data,  matching_vars){
 #'   THE DECISION SUPPORT UNIT, December 2016
 #'
 #' @seealso \code{\link{estimate_weights}}
+#'
+#' @example inst/examples/MAICexample.R
+#'
 #' @export
 estimate_ess <- function(data, wt_col="wt"){
   ess <- sum(data[,wt_col])^2/sum(data[,wt_col]^2)
@@ -131,6 +137,9 @@ estimate_ess <- function(data, wt_col="wt"){
 #' @return A data frame that includes a summary (minimum, maximum, median, mean) of the weights and rescaled weights.
 #'
 #' @seealso \code{\link{estimate_weights}}
+#'
+#' @example inst/examples/MAICexample.R
+#'
 #' @export
 summarize_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs"){
   summary <- data.frame(
@@ -163,6 +172,9 @@ summarize_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs"){
 #' @return A histogram plot of the weights and rescaled weights.
 #'
 #' @seealso \code{\link{estimate_weights}}
+#'
+#' @example inst/examples/MAICexample.R
+#'
 #' @export
 hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 
@@ -211,6 +223,9 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 #'   associated with each weight value.
 #'
 #' @seealso \code{\link{estimate_weights}}
+#'
+#' @example inst/examples/MAICexample.R
+#'
 #' @export
 profile_wts <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
   profile_data <-  data %>%
@@ -252,6 +267,9 @@ profile_wts <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
 #' }
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{estimate_ess}}, \code{\link{summarize_wts}}, \code{\link{profile_wts}}
+#'
+#' @example inst/examples/MAICexample.R
+#'
 #' @export
 wt_diagnostics <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
 

@@ -8,13 +8,16 @@
 #' @param i Index used to select a sample within \code{\link{boot}}.
 #' @param model A model formula in the form 'Surv(Time, Event==1) ~ ARM'.
 #'   Variable names need to match the corresponding columns in intervention_data.
-#'   #' @param comparator_data A data frame containing pseudo individual patient data from the comparator study needed to derive the relative treatment effect.
+#' @param comparator_data A data frame containing pseudo individual patient data from the comparator study needed to derive the relative treatment effect.
 #'  The outcome variables names must match intervention_data.
 
 #'
 #' @return The HR as a numeric value.
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{boot}}
+#'
+#' @example inst/examples/MAICexample.R
+#'
 #' @export
 
 bootstrap_HR <- function(intervention_data, matching, i, model, comparator_data){
@@ -54,9 +57,12 @@ bootstrap_HR <- function(intervention_data, matching, i, model, comparator_data)
 #'   Variable names need to match the corresponding columns in intervention_data.
 #' @param comparator_data A data frame containing pseudo individual patient data from the comparator study needed to derive the relative treatment effect.
 #'  The outcome variables names must match intervention_data.
-#'  #' @return The OR as a numeric value.
+#' @return The OR as a numeric value.
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{boot}}
+#'
+#' @example inst/examples/MAICexample.R
+#'
 #' @export
 bootstrap_OR <- function(intervention_data, matching, i, model, comparator_data){
 
