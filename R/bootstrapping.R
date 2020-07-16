@@ -1,20 +1,19 @@
 #' Bootstrapping for MAIC weighted hazard ratios
 #'
-#' A function required for the "statistic" argument in the \code{\link{boot}} function.
-#' Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted hazard ratio (HR) from a Cox proportional hazards model.
-#' @param intervention_data  A data frame containing individual patient data from the intervention study.
+#' A function required for the "statistic" argument in the \code{\link{boot}}
+#' function. Performs MAIC weighting using {\link{estimate_weights}} and returns
+#' a weighted hazard ratio (HR) from a Cox proportional hazards model.
+#' @param intervention_data  A data frame containing individual patient data
+#'   from the intervention study.
 #' @param matching A character vector giving the names of the covariates to use
 #'   in matching. These names must match the column names in intervention_data.
 #' @param i Index used to select a sample within \code{\link{boot}}.
 #' @param model A model formula in the form 'Surv(Time, Event==1) ~ ARM'.
-#'   Variable names need to match the corresponding columns in intervention_data.
-<<<<<<< HEAD
-#' @param comparator_data A data frame containing pseudo individual patient data from the comparator study needed to derive the relative treatment effect.
-=======
-#'   #' @param comparator_data A data frame containing pseudo individual patient data from the comparator study needed to derive the relative treatment effect.
->>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
-#'  The outcome variables names must match intervention_data.
-
+#'   Variable names need to match the corresponding columns in
+#'   intervention_data.
+#' @param comparator_data A data frame containing pseudo individual patient data
+#'   from the comparator study needed to derive the relative treatment effect.
+#'   The outcome variables names must match intervention_data.
 #'
 #' @return The HR as a numeric value.
 #'
@@ -49,23 +48,21 @@ bootstrap_HR <- function(intervention_data, matching, i, model, comparator_data)
 
 #' Bootstrapping for MAIC weighted odds ratios
 #'
-#' A function required for the "statistic" argument in the \code{\link{boot}} function.
-#' Performs MAIC weighting using {\link{estimate_weights}} and returns a weighted odds ratio (OR) from a binomial generalised linear model.
+#' A function required for the "statistic" argument in the \code{\link{boot}}
+#' function. Performs MAIC weighting using {\link{estimate_weights}} and returns
+#' a weighted odds ratio (OR) from a binomial generalised linear model.
 #'
-#' @param intervention_data  A data frame containing individual patient data from the intervention study.
-
+#' @param intervention_data  A data frame containing individual patient data
+#'   from the intervention study.
 #' @param matching A character vector giving the names of the covariates to use
 #'   in matching. These names must match the column names in intervention_data.
 #' @param i Index used to select a sample within \code{\link{boot}}.
-#' @param model A model formula in the form 'endpoint ~ treatment_var'.
-#'   Variable names need to match the corresponding columns in intervention_data.
-#' @param comparator_data A data frame containing pseudo individual patient data from the comparator study needed to derive the relative treatment effect.
-#'  The outcome variables names must match intervention_data.
-<<<<<<< HEAD
+#' @param model A model formula in the form 'endpoint ~ treatment_var'. Variable
+#'   names need to match the corresponding columns in intervention_data.
+#' @param comparator_data A data frame containing pseudo individual patient data
+#'   from the comparator study needed to derive the relative treatment effect.
+#'   The outcome variables names must match intervention_data.
 #' @return The OR as a numeric value.
-=======
-#'  #' @return The OR as a numeric value.
->>>>>>> b4d1091cb48d6167115dd4b0ea6f1ded7a736654
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{boot}}
 #'
