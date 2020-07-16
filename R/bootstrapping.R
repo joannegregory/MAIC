@@ -22,7 +22,6 @@
 #' @example inst/examples/MAICexample.R
 #'
 #' @export
-
 bootstrap_HR <- function(intervention_data, matching, i, model, comparator_data){
 
   # Samples the data
