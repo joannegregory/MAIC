@@ -24,6 +24,50 @@ A list containing 2 objects. First, a data frame named analysis_data containing 
 \description{
 Estimate propensity weights for matching-adjusted indirect comparison (MAIC).
 }
+\details{
+The premise of MAIC methods is to adjust for between-trial
+  differences in patient demographic or disease characteristics at baseline.
+  When a common treatment comparator or ‘linked network’ are unavailable, a
+  MAIC assumes that differences between absolute outcomes that would be
+  observed in each trial are entirely explained by imbalances in prognostic
+  variables and treatment effect modifiers.
+
+  The aim of the MAIC method is to estimate a set of propensity weights based
+  on prognostic variables and treatment effect modifiers. These weights can
+  be used in subsequent statistical analysis to adjust for differences in
+  patient characteristics between the population in the intervention trial
+  and the population in a comparator study. For additional details on the
+  statistical methods, refer to the package vignette.
+
+  The data required for an unanchored MAIC are:
+
+  \itemize{
+    \item Individual patient data from a single arm study of 'intervention'
+    \item Aggregate summary data for 'comparator'. This could be from a
+    single arm study of the comparator or from one arm of a randomized
+    controlled trial.
+    \item Psuedo patient data from the comparator study. This is not required
+    for the matching process but is needed to derive the relative treatment
+    effects between the intervention and comparator.
+    }
+
+    For the matching process:
+
+    \enumerate{
+      \item All binary variables to be used in the matching should be coded 1 and 0
+      \item The variable names need to be listed in a character vector called match_cov
+      \item Aggregate baseline characteristics (number of patients, mean and
+      SD for continuous variables and proportion for binary variables) from
+      the comparator trial are needed as a data frame. Naming of the
+      covariates in this data frame should be consistent with variable names in the intervention data.
+      \item Patient baseline characteristics in the intervention study are
+      centered on the value of the aggregate data from the comparator study
+      \item The estimate_weights funcion can then be used to estimate
+      propensity weights for each patient in the intervention study
+    }
+
+    For full details refer to the example below and the package vignette
+}
 \examples{
 
 # This example code estimates weights for individual patient data from a single

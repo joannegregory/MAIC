@@ -26,9 +26,15 @@ The outcome variables names must match intervention_data.}
 The OR as a numeric value.
 }
 \description{
-A function required for the "statistic" argument in the \code{\link{boot}}
-function. Performs MAIC weighting using {\link{estimate_weights}} and returns
-a weighted odds ratio (OR) from a binomial generalised linear model.
+Bootstrapping for MAIC weighted odds ratios
+}
+\details{
+This function is intended to be used in conjunction with the
+  \code{\link{boot}} function to return the statistic to be
+  bootstrapped. In this case by performing MAIC weighting using
+  {\link{estimate_weights}} and returning a weighted odds ratio (HR) from a
+  logistic regression model. This used as the 'statistic' argument in
+  the boot function.
 }
 \examples{
 

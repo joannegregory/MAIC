@@ -27,9 +27,15 @@ The outcome variables names must match intervention_data.}
 The HR as a numeric value.
 }
 \description{
-A function required for the "statistic" argument in the \code{\link{boot}}
-function. Performs MAIC weighting using {\link{estimate_weights}} and returns
-a weighted hazard ratio (HR) from a Cox proportional hazards model.
+Bootstrapping for MAIC weighted hazard ratios
+}
+\details{
+This function is intended to be used in conjunction with the
+  \code{\link{boot}} function to return the statistic to be
+  bootstrapped. In this case by performing MAIC weighting using
+  {\link{estimate_weights}} and returning a weighted hazard ratio (HR) from a
+  Cox proportional hazards model. This used as the 'statistic' argument in
+  the boot function.
 }
 \examples{
 

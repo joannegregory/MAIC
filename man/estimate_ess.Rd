@@ -21,6 +21,17 @@ The effective sample size (ESS) as a numeric value.
 \description{
 Estimate the effective sample size (ESS).
 }
+\details{
+For a weighted estimate, the effective sample size (ESS) is the
+  number of independent non-weighted individuals that would be required to
+  give an estimate with the same precision as the weighted sample estimate. A
+  small ESS, relative to the original sample size, is an indication that the
+  weights are highly variable and that the estimate may be unstable. This
+  often occurs if there is very limited overlap in the distribution of the
+  matching variables between the populations being compared. If there is
+  insufficient overlap between populations it may not be possible to obtain
+  reliable estimates of the weights
+}
 \examples{
 
 # This example code estimates weights for individual patient data from a single
