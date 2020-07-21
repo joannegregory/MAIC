@@ -234,9 +234,12 @@ comparator_surv <- read.csv(system.file("extdata", "psuedo_IPD.csv",
 # Simulate response data based on the known proportion of responders
 comparator_n <- nrow(comparator_surv) # total number of patients in the comparator data
 comparator_prop_events <- 0.4 # proportion of responders
-comparator_binary <- data.frame("response"=
-                                  c(rep(1,comparator_n*comparator_prop_events),
-                                    rep(0, comparator_n*(1-comparator_prop_events))))
+# Calculate number with event
+# Use round() to ensure we end up with a whole number of people
+# number without an event = Total N - number with event to ensure we keep the same number of patients
+n_with_event <- round(comparator_n*comparator_prop_events, digits = 0)
+comparator_binary <- data.frame("response"= c(rep(1, n_with_event), rep(0, comparator_n - n_with_event)))
+
 
 # Join survival and response comparator data
 # Note the rows do not represent observations from a particular patient
