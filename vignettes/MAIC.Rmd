@@ -1,6 +1,6 @@
 ---
 title: "Matching-Adjusted Indirect Comparison: Example using the <tt>MAIC</tt> package"
-author: "BresMed and Roche"
+author: "Roche"
 date: "`r Sys.Date()`"
 output: 
   rmarkdown::html_vignette:
