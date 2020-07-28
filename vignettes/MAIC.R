@@ -136,7 +136,7 @@ head(wts_profile)
 ## -----------------------------------------------------------------------------
 # Function to produce a set of diagnostics.
 # Calls each of the diagnostic functions above except for plotting histograms
-diagnostics <- wt_diagnostics(est_weights$analysis_data, vars = est_weights$matching_vars)
+diagnostics <- wt_diagnostics(est_weights$analysis_data, vars = match_cov)
 
 diagnostics$ESS
 
