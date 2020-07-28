@@ -1,8 +1,5 @@
 #' Bootstrapping for MAIC weighted hazard ratios
 #'
-#' A function required for the "statistic" argument in the \code{\link{boot}}
-#' function. Performs MAIC weighting using {\link{estimate_weights}} and returns
-#' a weighted hazard ratio (HR) from a Cox proportional hazards model.
 #' @param intervention_data  A data frame containing individual patient data
 #'   from the intervention study.
 #' @param matching A character vector giving the names of the covariates to use
@@ -14,6 +11,13 @@
 #' @param comparator_data A data frame containing pseudo individual patient data
 #'   from the comparator study needed to derive the relative treatment effect.
 #'   The outcome variables names must match intervention_data.
+#'
+#' @details This function is intended to be used in conjunction with the
+#'   \code{\link{boot}} function to return the statistic to be
+#'   bootstrapped. In this case by performing MAIC weighting using
+#'   {\link{estimate_weights}} and returning a weighted hazard ratio (HR) from a
+#'   Cox proportional hazards model. This used as the 'statistic' argument in
+#'   the boot function.
 #'
 #' @return The HR as a numeric value.
 #'
@@ -43,13 +47,7 @@ bootstrap_HR <- function(intervention_data, matching, i, model, comparator_data)
 }
 
 
-
-
 #' Bootstrapping for MAIC weighted odds ratios
-#'
-#' A function required for the "statistic" argument in the \code{\link{boot}}
-#' function. Performs MAIC weighting using {\link{estimate_weights}} and returns
-#' a weighted odds ratio (OR) from a binomial generalised linear model.
 #'
 #' @param intervention_data  A data frame containing individual patient data
 #'   from the intervention study.
@@ -61,6 +59,14 @@ bootstrap_HR <- function(intervention_data, matching, i, model, comparator_data)
 #' @param comparator_data A data frame containing pseudo individual patient data
 #'   from the comparator study needed to derive the relative treatment effect.
 #'   The outcome variables names must match intervention_data.
+#'
+#' @details This function is intended to be used in conjunction with the
+#'   \code{\link{boot}} function to return the statistic to be
+#'   bootstrapped. In this case by performing MAIC weighting using
+#'   {\link{estimate_weights}} and returning a weighted odds ratio (HR) from a
+#'   logistic regression model. This used as the 'statistic' argument in
+#'   the boot function.
+#'
 #' @return The OR as a numeric value.
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{boot}}
