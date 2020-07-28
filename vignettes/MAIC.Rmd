@@ -431,7 +431,7 @@ the function <tt>wt_diagnostics</tt> which brings together the three functions:
 ```{r}
 # Function to produce a set of diagnostics.
 # Calls each of the diagnostic functions above except for plotting histograms
-diagnostics <- wt_diagnostics(est_weights$analysis_data, vars = est_weights$matching_vars)
+diagnostics <- wt_diagnostics(est_weights$analysis_data, vars = match_cov)
 
 diagnostics$ESS
 
@@ -779,12 +779,13 @@ treatment effect (closer to 1) than the unweighted OR 5.32 (95% CI: 3.89, 7.28)
 indicating a smaller difference between treatments. The median of the bootstrap
 OR samples was similar to the OR from the weighted logistic regression model to
 two decimal places. The median OR from the bootstrap samples was 3.78 compared
-with the OR of 3.79 from the weighted logistic regression model. For this endpoint, the percentile CI (2.69 to
-5.44) and BCa confidence interval (2.67, 5.40) are similar, suggesting the bootstrap
-samples are relatively normally distributed (see
-[diagnostics](#bsor)). Finally, it should be noted that results are relatively
-consistent across all methods, the intervention treatment significantly
-increases the odds of response compared with the comparator treatment.
+with the OR of 3.79 from the weighted logistic regression model. For this
+endpoint, the percentile CI (2.69 to 5.44) and BCa confidence interval (2.67,
+5.40) are similar, suggesting the bootstrap samples are relatively normally
+distributed (see [diagnostics](#bsor)). Finally, it should be noted that results
+are relatively consistent across all methods, the intervention treatment
+significantly increases the odds of response compared with the comparator
+treatment.
 
 When deriving the weighted OR using the GLM, the warnings have been suppressed,
 since the function expects integer values for response (i.e. 1 or 0) however,
