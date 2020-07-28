@@ -1,8 +1,9 @@
 
-# This example code uses weighted patient-level data for 'intervention' to
-# perform unanchored MAICs with 'comparator' for overall survival (a time to
-# event outcome) and objective response (a binary outcome) . The weights were
-# estimated using the estimate_weights() function in the MAIC package.
+# This example code estimates weights for individual patient data from a single
+# arm study of 'intervention' based on aggregate baseline characteristics from
+# the comparator trial and then performs analyses for two endpoints: overall
+# survival (a time to event outcome) and objective response (a binary outcome)
+
 library(dplyr)
 library(boot)
 library(survival)
@@ -12,18 +13,38 @@ library(survminer)
 library(flextable)
 library(officer)
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#          Incorporation of weights in statistical analysis                   #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Incorporation of weights in statistical analysis -----------------------------
 
-#### Read in the analysis data with weights ------------------------------------
-analysis_data <- read.csv(system.file("extdata", "analysis_data.csv",
-                                      package = "MAIC",
-                                      mustWork = TRUE))
+#### Estimate weights for the intervention data --------------------------------
+# See package vignette for more detail on combining and cleaning data so that
+# the final intervention data is in the right format for the function that
+# estimates weights (est_weights())
+
+# intervention data
+intervention_data <- read.csv(system.file("extdata",
+                                          "intervention_data.csv",
+                                          package = "MAIC",
+                                          mustWork = TRUE))
+
+# Define the matching covariates
+cent_match_cov <- c("Age_centered",
+                    "Age_squared_centered",
+                    "Sex_centered",
+                    "Smoke_centered",
+                    "ECOG0_centered")
+
+# Estimate weights
+est_weights <- estimate_weights(intervention_data = intervention_data,
+                                matching_vars = cent_match_cov)
 
 
 #### Combine the comparator pseudo data with the analysis data -----------------
 
-# Read in digitised pseudo survival data, col names must match intervention_input
+# Read in digitised pseudo survival data, col names must match
+# intervention_input
 comparator_surv <- read.csv(system.file("extdata", "psuedo_IPD.csv",
                                         package = "MAIC", mustWork = TRUE)) %>%
                             rename(Time=Time, Event=Event)
@@ -34,7 +55,8 @@ comparator_n <- nrow(comparator_surv) # total number of patients in the comparat
 comparator_prop_events <- 0.4 # proportion of responders
 # Calculate number with event
 # Use round() to ensure we end up with a whole number of people
-# number without an event = Total N - number with event to ensure we keep the same number of patients
+# number without an event = Total N - number with event to ensure we keep the
+# same number of patients
 n_with_event <- round(comparator_n*comparator_prop_events, digits = 0)
 comparator_binary <- data.frame("response"= c(rep(1, n_with_event), rep(0, comparator_n - n_with_event)))
 
@@ -52,6 +74,7 @@ head(comparator_input)
 # Set factor levels to ensure "Comparator" is the reference treatment
 combined_data <-  bind_rows(est_weights$analysis_data, comparator_input)
 combined_data$ARM <- relevel(as.factor(combined_data$ARM), ref="Comparator")
+
 
 #### Estimating the relative effect --------------------------------------------
 
@@ -103,14 +126,20 @@ unweighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = combined_data)
 
 HR_CI_cox <- summary(unweighted_cox)$conf.int %>%
   as.data.frame() %>%
-  transmute("HR" = `exp(coef)`, "HR_low_CI" = `lower .95`, "HR_upp_CI" = `upper .95`)
+  transmute("HR" = `exp(coef)`,
+            "HR_low_CI" = `lower .95`,
+            "HR_upp_CI" = `upper .95`)
 
 # Fit a Cox model with weights to estimate the weighted HR
-weighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = combined_data, weights = wt)
+weighted_cox <- coxph(Surv(Time, Event==1) ~ ARM,
+                      data = combined_data,
+                      weights = wt)
 
 HR_CI_cox_wtd <- summary(weighted_cox)$conf.int %>%
   as.data.frame() %>%
-  transmute("HR" = `exp(coef)`, "HR_low_CI" = `lower .95`, "HR_upp_CI" = `upper .95`)
+  transmute("HR" = `exp(coef)`,
+            "HR_low_CI" = `lower .95`,
+            "HR_upp_CI" = `upper .95`)
 
 ## Bootstrap the confidence interval of the weighted HR
 
