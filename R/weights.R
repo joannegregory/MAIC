@@ -269,7 +269,7 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 #'   containing the intervention individual patient data and the MAIC propensity
 #'   weights. The default is wt_rs.
 #' @param vars A character vector giving the variable names of the baseline
-#'   characteristics. These names must match the column names in data.
+#'   characteristics. These names must match the column names in the data.
 #'
 #' @return A data frame that includes a summary of patient characteristics
 #'   associated with each weight value.
