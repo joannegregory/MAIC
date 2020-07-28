@@ -32,17 +32,16 @@ Bootstrapping for MAIC weighted odds ratios
 This function is intended to be used in conjunction with the
   \code{\link{boot}} function to return the statistic to be
   bootstrapped. In this case by performing MAIC weighting using
-  {\link{estimate_weights}} and returning a weighted odds ratio (HR) from a
-  logistic regression model. This used as the 'statistic' argument in
+  {\link{estimate_weights}} and returning a weighted odds ratio (OR) from a
+  logistic regression model. This is used as the 'statistic' argument in
   the boot function.
 }
 \examples{
 
 # This example code estimates weights for individual patient data from a single
 # arm study of 'intervention' based on aggregate baseline characteristics from
-# the comparator trial, performs diagnostics on the weights and then performs
-# analyses for two endpoints: overall survival (a time to event outcome) and
-# objective response (a binary outcome)
+# the comparator trial and then performs analyses for two endpoints: overall
+# survival (a time to event outcome) and objective response (a binary outcome)
 
 library(dplyr)
 library(boot)
@@ -53,176 +52,38 @@ library(survminer)
 library(flextable)
 library(officer)
 
-#### Prepare the data ----------------------------------------------------------
-
-### Intervention data
-
-# Read in relevant ADaM data and rename variables of interest
-adsl <- read.csv(system.file("extdata", "adsl.csv", package = "MAIC",
-                             mustWork = TRUE))
-adrs <- read.csv(system.file("extdata", "adrs.csv", package = "MAIC",
-                             mustWork = TRUE))
-adtte <- read.csv(system.file("extdata", "adtte.csv", package = "MAIC",
-                              mustWork = TRUE))
-
-adsl <- adsl \%>\% # Data containing the matching variables
-  mutate(SEX=ifelse(SEX=="Male", 1, 0)) # Coded 1 for males and 0 for females
-
-adrs <- adrs \%>\% # Response data
-  filter(PARAM=="Response") \%>\%
-  transmute(USUBJID, ARM, response=AVAL)
-
-adtte <- adtte \%>\% # Time to event data (overall survival)
-  filter(PARAMCD=="OS") \%>\%
-  mutate(Event=1-CNSR) \%>\% #Set up coding as Event = 1, Censor = 0
-  transmute(USUBJID, ARM, Time=AVAL, Event)
-
-# Combine all intervention data
-intervention_input <- adsl \%>\%
-  full_join(adrs, by=c("USUBJID", "ARM")) \%>\%
-  full_join(adtte, by=c("USUBJID", "ARM"))
-
-# List out the variables in the intervention data that have been identified as
-# prognostic factors or treatment effect modifiers and will be used in the
-# matching
-match_cov <- c("AGE",
-               "SEX",
-               "SMOKE",
-               "ECOG0")
-
-## Baseline data from the comparator trial
-# Baseline aggregate data for the comparator population
-target_pop <- read.csv(system.file("extdata", "Aggregate data.csv",
-                                     package = "MAIC", mustWork = TRUE))
-
-# Rename target population cols to be consistent with match_cov
-target_pop_standard <- target_pop \%>\%
-        rename(
-           N=N,
-           Treatment=ARM,
-           AGE=age.mean,
-           SEX=prop.male,
-           SMOKE=prop.smoke,
-           ECOG0=prop.ecog0
-              ) \%>\%
-        transmute(N, Treatment, AGE, SEX, SMOKE, ECOG0)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#          Incorporation of weights in statistical analysis                   #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-#### Estimate weights ----------------------------------------------------------
+#### Estimate weights for the intervention data --------------------------------
+# See package vignette for more detail on combining and cleaning data so that
+# the final intervention data is in the right format for the function that
+# estimates weights (est_weights())
 
-### Center baseline characteristics
-# (subtract the aggregate comparator data from the corresponding column of
-# intervention PLD)
-intervention_data <- intervention_input \%>\%
-    mutate(
-     Age_centered = AGE - target_pop$age.mean,
-     # matching on both mean and standard deviation for continuous variables (optional)
-     Age_squared_centered = (AGE^2) - (target_pop$age.mean^2 + target_pop$age.sd^2),
-     Sex_centered = SEX - target_pop$prop.male,
-     Smoke_centered = SMOKE - target_pop$prop.smoke,
-     ECOG0_centered = ECOG0 - target_pop$prop.ecog0)
+# intervention data
+intervention_data <- read.csv(system.file("extdata",
+                                          "intervention_data.csv",
+                                          package = "MAIC",
+                                          mustWork = TRUE))
 
-## Define the matching covariates
+# Define the matching covariates
 cent_match_cov <- c("Age_centered",
                     "Age_squared_centered",
                     "Sex_centered",
                     "Smoke_centered",
                     "ECOG0_centered")
 
-## Optimization procedure
-# Following the centering of the baseline characteristics of the intervention
-# study, patient weights can be estimated using estimate_weights
-# The function output is a list containing (1) a data set of the individual
-# patient data with the assigned weights "analysis_data" and (2) a vector
-# containing the matching variables "matching_vars"
+# Estimate weights
 est_weights <- estimate_weights(intervention_data = intervention_data,
                                 matching_vars = cent_match_cov)
 
-#### Weight diagnostics --------------------------------------------------------
 
-### Are the weights sensible?
-
-# The wt_diagnostics function requires the outputs from the est_weights function
-# and will output:
-# - the effective sample size (ESS)
-# - a summary of the weights and rescaled weights (mean, standard deviation,
-#   median, minimum and maximum)
-# - a unique set of weights with the corresponding patient profile based on the
-#   matching variables
-
-diagnostics <- wt_diagnostics(est_weights$analysis_data,
-                              vars = est_weights$matching_vars)
-
-diagnostics$ESS
-diagnostics$Summary_of_weights
-diagnostics$Weight_profiles
-
-# Each of the wt_diagnostics outputs can also be estimated individually
-ESS <- estimate_ess(est_weights$analysis_data)
-weight_summ <- summarize_wts(est_weights$analysis_data)
-wts_profile <- profile_wts(est_weights$analysis_data, vars = match_cov)
-
-# Plot histograms of unscaled and rescaled weights
-# bin_width needs to be adapted depending on the sample size in the data set
-histogram <- hist_wts(est_weights$analysis_data, bin = 50)
-histogram
-
-
-### Has the optimization worked?
-
-# The following code produces a summary table of the intervention baseline
-# characteristics before and after matching compared with the comparator
-# baseline characteristics:
-
-# Create an object to hold the output
-baseline_summary <- list('Intervention' = NA,
-                         'Intervention_weighted' = NA,
-                         'Comparator' = NA)
-
-# Summarise matching variables for weighted intervention data
-baseline_summary$Intervention_weighted <- est_weights$analysis_data \%>\%
-  transmute(AGE, SEX, SMOKE, ECOG0, wt) \%>\%
-  summarise_at(match_cov, list(~ weighted.mean(., wt)))
-
-# Summarise matching variables for unweighted intervention data
-baseline_summary$Intervention <- est_weights$analysis_data \%>\%
-  transmute(AGE, SEX, SMOKE, ECOG0, wt) \%>\%
-  summarise_at(match_cov, list(~ mean(.)))
-
-# baseline data for the comparator study
-baseline_summary$Comparator <- transmute(target_pop_standard,
-                                         AGE,
-                                         SEX,
-                                         SMOKE,
-                                         ECOG0)
-
-# Combine the three summaries
-# Takes a list of data frames and binds these together
-trt <- names(baseline_summary)
-baseline_summary <-  bind_rows(baseline_summary) \%>\%
-  transmute_all(sprintf, fmt = "\%.2f") \%>\% #apply rounding for presentation
-  transmute(ARM = as.character(trt), AGE, SEX, SMOKE, ECOG0)
-
-# Insert N of intervention  as number of patients
-baseline_summary$`N/ESS`[baseline_summary$ARM == "Intervention"] <- nrow(est_weights$analysis_data)
-
-# Insert N for comparator from target_pop_standard
-baseline_summary$`N/ESS`[baseline_summary$ARM == "Comparator"] <- target_pop_standard$N
-
-# Insert the ESS as the sample size for the weighted data
-# This is calculated above but can also be obtained using the estimate_ess function as shown below
-baseline_summary$`N/ESS`[baseline_summary$ARM == "Intervention_weighted"] <- est_weights$analysis_data \%>\%
-  estimate_ess(wt_col = 'wt')
-
-baseline_summary <- baseline_summary \%>\%
-  transmute(ARM, `N/ESS`=round(`N/ESS`,1), AGE, SEX, SMOKE, ECOG0)
-
-
-
-# Incorporation of the weights in statistical analysis --------------------
 #### Combine the comparator pseudo data with the analysis data -----------------
 
-# Read in digitised pseudo survival data, col names must match intervention_input
+# Read in digitised pseudo survival data, col names must match
+# intervention_input
 comparator_surv <- read.csv(system.file("extdata", "psuedo_IPD.csv",
                                         package = "MAIC", mustWork = TRUE)) \%>\%
                             rename(Time=Time, Event=Event)
@@ -233,7 +94,8 @@ comparator_n <- nrow(comparator_surv) # total number of patients in the comparat
 comparator_prop_events <- 0.4 # proportion of responders
 # Calculate number with event
 # Use round() to ensure we end up with a whole number of people
-# number without an event = Total N - number with event to ensure we keep the same number of patients
+# number without an event = Total N - number with event to ensure we keep the
+# same number of patients
 n_with_event <- round(comparator_n*comparator_prop_events, digits = 0)
 comparator_binary <- data.frame("response"= c(rep(1, n_with_event), rep(0, comparator_n - n_with_event)))
 
@@ -251,6 +113,7 @@ head(comparator_input)
 # Set factor levels to ensure "Comparator" is the reference treatment
 combined_data <-  bind_rows(est_weights$analysis_data, comparator_input)
 combined_data$ARM <- relevel(as.factor(combined_data$ARM), ref="Comparator")
+
 
 #### Estimating the relative effect --------------------------------------------
 
@@ -302,14 +165,20 @@ unweighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = combined_data)
 
 HR_CI_cox <- summary(unweighted_cox)$conf.int \%>\%
   as.data.frame() \%>\%
-  transmute("HR" = `exp(coef)`, "HR_low_CI" = `lower .95`, "HR_upp_CI" = `upper .95`)
+  transmute("HR" = `exp(coef)`,
+            "HR_low_CI" = `lower .95`,
+            "HR_upp_CI" = `upper .95`)
 
 # Fit a Cox model with weights to estimate the weighted HR
-weighted_cox <- coxph(Surv(Time, Event==1) ~ ARM, data = combined_data, weights = wt)
+weighted_cox <- coxph(Surv(Time, Event==1) ~ ARM,
+                      data = combined_data,
+                      weights = wt)
 
 HR_CI_cox_wtd <- summary(weighted_cox)$conf.int \%>\%
   as.data.frame() \%>\%
-  transmute("HR" = `exp(coef)`, "HR_low_CI" = `lower .95`, "HR_upp_CI" = `upper .95`)
+  transmute("HR" = `exp(coef)`,
+            "HR_low_CI" = `lower .95`,
+            "HR_upp_CI" = `upper .95`)
 
 ## Bootstrap the confidence interval of the weighted HR
 
