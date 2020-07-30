@@ -39,10 +39,10 @@ This function is intended to be used in conjunction with the
 }
 \examples{
 
-# This example code estimates weights for individual patient data from a single
-# arm study of 'intervention' based on aggregate baseline characteristics from
-# the comparator trial and then performs analyses for two endpoints: overall
-# survival (a time to event outcome) and objective response (a binary outcome)
+# This example code combines weighted individual patient data for 'intervention'
+# and pseudo individual patient data for 'comparator' and performs analyses for
+# two endpoints: overall survival (a time to event outcome) and objective
+# response (a binary outcome)
 
 library(dplyr)
 library(boot)
@@ -53,38 +53,13 @@ library(survminer)
 library(flextable)
 library(officer)
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#          Incorporation of weights in statistical analysis                   #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+# Combine data -----------------------------------------------------------------
 
-#### Estimate weights for the intervention data --------------------------------
-# See package vignette for more detail on combining and cleaning data so that
-# the final intervention data is in the right format for the function that
-# estimates weights (estimate_weights())
+# Combine the the comparator pseudo data with the analysis data, outputted from
+# the estimate_weights function
 
-# intervention data
-intervention_data <- read.csv(system.file("extdata",
-                                          "intervention_data.csv",
-                                          package = "MAIC",
-                                          mustWork = TRUE))
-
-# Define the matching covariates
-cent_match_cov <- c("Age_centered",
-                    "Age_squared_centered",
-                    "Sex_centered",
-                    "Smoke_centered",
-                    "ECOG0_centered")
-
-# Estimate weights
-est_weights <- estimate_weights(intervention_data = intervention_data,
-                                matching_vars = cent_match_cov)
-
-
-#### Combine the comparator pseudo data with the analysis data -----------------
-
-# Read in digitised pseudo survival data, col names must match
-# intervention_input
+# Read in digitised pseudo survival data for the comparator
 comparator_surv <- read.csv(system.file("extdata", "psuedo_IPD.csv",
                                         package = "MAIC", mustWork = TRUE)) \%>\%
                             rename(Time=Time, Event=Event)
@@ -110,7 +85,8 @@ comparator_input <- cbind(comparator_surv, comparator_binary) \%>\%
   mutate(wt=1, wt_rs=1, ARM="Comparator") # All patients have weight = 1
 head(comparator_input)
 
-# Join comparator data with the intervention data
+# Join comparator data with the intervention data (naming of variables should be
+# consistent between both datasets)
 # Set factor levels to ensure "Comparator" is the reference treatment
 combined_data <-  bind_rows(est_weights$analysis_data, comparator_input)
 combined_data$ARM <- relevel(as.factor(combined_data$ARM), ref="Comparator")
