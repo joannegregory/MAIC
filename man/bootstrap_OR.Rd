@@ -60,7 +60,7 @@ library(officer)
 #### Estimate weights for the intervention data --------------------------------
 # See package vignette for more detail on combining and cleaning data so that
 # the final intervention data is in the right format for the function that
-# estimates weights (est_weights())
+# estimates weights (estimate_weights())
 
 # intervention data
 intervention_data <- read.csv(system.file("extdata",
