@@ -24,3 +24,5 @@ Imports:
     magrittr (>= 1.5),
     plyr (>= 1.8.6),
     survival (>= 3.1)
+Depends: 
+    R (>= 2.10)
