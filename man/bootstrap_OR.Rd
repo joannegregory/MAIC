@@ -52,6 +52,8 @@ library(survminer)
 library(flextable)
 library(officer)
 
+# load intervention data with weights saved in est_weights
+data(est_weights, package = "MAIC")
 
 # Combine data -----------------------------------------------------------------
 

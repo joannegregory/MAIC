@@ -41,12 +41,17 @@ rescaled weights).
 library(dplyr)
 library(MAIC)
 
+# load est_weights
+data(est_weights, package = "MAIC")
+
+# load target_pop_standard
+data(target_pop_standard, package = "MAIC")
+
 # List out the uncentered variables used in the matching
 match_cov <- c("AGE",
                "SEX",
                "SMOKE",
                "ECOG0")
-
 
 # Are the weights sensible? ----------------------------------------------------
 
