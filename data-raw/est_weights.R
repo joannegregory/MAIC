@@ -1,8 +1,4 @@
 
-# This example code estimates weights for individual patient data from a single
-# arm study of 'intervention' based on aggregate baseline characteristics from
-# the comparator trial
-
 library(dplyr)
 library(MAIC)
 
@@ -47,19 +43,21 @@ match_cov <- c("AGE",
 ## Baseline data from the comparator trial
 # Baseline aggregate data for the comparator population
 target_pop <- read.csv(system.file("extdata", "Aggregate data.csv",
-                                     package = "MAIC", mustWork = TRUE))
+                                   package = "MAIC", mustWork = TRUE))
 
 # Rename target population cols to be consistent with match_cov
 target_pop_standard <- target_pop %>%
-        rename(
-           N=N,
-           Treatment=ARM,
-           AGE=age.mean,
-           SEX=prop.male,
-           SMOKE=prop.smoke,
-           ECOG0=prop.ecog0
-              ) %>%
-        transmute(N, Treatment, AGE, SEX, SMOKE, ECOG0)
+  rename(
+    N=N,
+    Treatment=ARM,
+    AGE=age.mean,
+    SEX=prop.male,
+    SMOKE=prop.smoke,
+    ECOG0=prop.ecog0
+  ) %>%
+  transmute(N, Treatment, AGE, SEX, SMOKE, ECOG0)
+
+usethis::use_data(target_pop_standard, overwrite = TRUE)
 
 
 #### Estimate weights ----------------------------------------------------------
@@ -68,13 +66,13 @@ target_pop_standard <- target_pop %>%
 # (subtract the aggregate comparator data from the corresponding column of
 # intervention PLD)
 intervention_data <- intervention_input %>%
-    mutate(
-     Age_centered = AGE - target_pop$age.mean,
-     # matching on both mean and standard deviation for continuous variables (optional)
-     Age_squared_centered = (AGE^2) - (target_pop$age.mean^2 + target_pop$age.sd^2),
-     Sex_centered = SEX - target_pop$prop.male,
-     Smoke_centered = SMOKE - target_pop$prop.smoke,
-     ECOG0_centered = ECOG0 - target_pop$prop.ecog0)
+  mutate(
+    Age_centered = AGE - target_pop$age.mean,
+    # matching on both mean and standard deviation for continuous variables (optional)
+    Age_squared_centered = (AGE^2) - (target_pop$age.mean^2 + target_pop$age.sd^2),
+    Sex_centered = SEX - target_pop$prop.male,
+    Smoke_centered = SMOKE - target_pop$prop.smoke,
+    ECOG0_centered = ECOG0 - target_pop$prop.ecog0)
 
 ## Define the matching covariates
 cent_match_cov <- c("Age_centered",
@@ -92,3 +90,4 @@ cent_match_cov <- c("Age_centered",
 est_weights <- estimate_weights(intervention_data = intervention_data,
                                 matching_vars = cent_match_cov)
 
+usethis::use_data(est_weights, overwrite = TRUE)
