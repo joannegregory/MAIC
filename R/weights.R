@@ -167,7 +167,7 @@ estimate_weights <- function(intervention_data,  matching_vars){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #'
-#' @example inst/examples/MAIC_example_weights.R
+#' @example inst/examples/MAIC_example_weight_diagnostics.R
 #'
 #' @export
 estimate_ess <- function(data, wt_col="wt"){
@@ -197,7 +197,7 @@ estimate_ess <- function(data, wt_col="wt"){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #'
-#' @example inst/examples/MAIC_example_weights.R
+#' @example inst/examples/MAIC_example_weight_diagnostics.R
 #'
 #' @export
 summarize_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs"){
@@ -233,7 +233,7 @@ summarize_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs"){
 #'
 #' @seealso \code{\link{estimate_weights}}
 #'
-#' @example inst/examples/MAIC_example_weights.R
+#' @example inst/examples/MAIC_example_weight_diagnostics.R
 #'
 #' @export
 hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
@@ -285,7 +285,7 @@ hist_wts <- function(data, wt_col="wt", rs_wt_col="wt_rs", bin = 30) {
 #'
 #' @seealso \code{\link{estimate_weights}}
 #'
-#' @example inst/examples/MAIC_example_weights.R
+#' @example inst/examples/MAIC_example_weight_diagnostics.R
 #'
 #' @export
 profile_wts <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
@@ -331,7 +331,7 @@ profile_wts <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
 #'
 #' @seealso \code{\link{estimate_weights}}, \code{\link{estimate_ess}}, \code{\link{summarize_wts}}, \code{\link{profile_wts}}
 #'
-#' @example inst/examples/MAIC_example_weights.R
+#' @example inst/examples/MAIC_example_weight_diagnostics.R
 #'
 #' @export
 wt_diagnostics <- function(data, wt_col="wt", wt_rs="wt_rs", vars){
